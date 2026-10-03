@@ -1,4 +1,4 @@
-# Market Dashboard
+# MoaiInvest
 
 Panel de precios en vivo, estilo TradingView, construido con **Flask**
 (arquitectura **MVC**) y **UV** para la gestión del proyecto/dependencias.
@@ -190,6 +190,16 @@ Heredan el color del texto (`stroke="currentColor"`) y miden `1em` (clase
 `.ui-icon`). Para añadir uno, anexa su trazado al diccionario `_paths`; el
 icono de cada watchlist se elige por slug en `watchlist_icons` (las que no
 estén usan `list`).
+
+### Nombre de la marca
+
+El nombre visible de la app (**MoaiInvest**) vive en un único sitio:
+`Config.SITE_NAME` en `config.py`. Un context processor lo inyecta en todas
+las plantillas como `site_name` (títulos de página, sidebar y landing) y
+`app/models/report.py` lo usa en el asunto y la cabecera del informe por
+email. Para renombrar la app basta con cambiar esa línea. El `name` de
+`pyproject.toml` (`market-dashboard`) y el prefijo de Cloudinary son
+identificadores técnicos y no se muestran al usuario.
 
 ## Puesta en marcha
 

@@ -11,6 +11,10 @@ load_dotenv()
 class Config:
     """Configuración base. Sirve tal cual para desarrollo."""
 
+    # Nombre de la marca: se muestra en títulos, sidebar, landing y emails.
+    # Cambiarlo aquí basta para renombrar toda la app.
+    SITE_NAME = "MoaiInvest"
+
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
     DEBUG = os.environ.get("FLASK_DEBUG", "1") == "1"
 

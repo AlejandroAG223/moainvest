@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}QUANT STATS · Revisión analítica {{ ticker }} · Market Dashboard{% endblock %}
+{% block title %}QUANT STATS · Revisión analítica {{ ticker }} · {{ site_name }}{% endblock %}
 
 {% macro plot_src(for_period) -%}
   {{ url_for('api.quant_plot', ticker=ticker, slug=plot.slug, period=for_period,

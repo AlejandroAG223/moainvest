@@ -22,7 +22,8 @@ def fake_quotes(monkeypatch):
 def test_build_market_report_includes_all_watchlists_by_default():
     market_report = report.build_market_report()
     assert [s.watchlist.slug for s in market_report.sections] == [w.slug for w in WATCHLISTS]
-    assert market_report.subject.startswith("Informe de mercado")
+    assert market_report.subject.startswith("MoaiInvest · Informe de mercado")
+    assert "MoaiInvest" in market_report.html
     for watchlist in WATCHLISTS:
         assert watchlist.name in market_report.html
 
@@ -71,5 +72,5 @@ def test_send_market_report_sends_built_html(monkeypatch):
     monkeypatch.setattr("app.models.report.send_email", _send)
     assert report.send_market_report("a@example.com", ["overview"]) == "email-1"
     assert sent["to"] == "a@example.com"
-    assert sent["subject"].startswith("Informe de mercado")
+    assert sent["subject"].startswith("MoaiInvest · Informe de mercado")
     assert "<html" in sent["html"]
