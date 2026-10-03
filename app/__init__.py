@@ -56,6 +56,11 @@ def register_context_processors(app: Flask) -> None:
         # Disponible en todas las plantillas (el sidebar se incluye en base.html).
         return {"apps": APPS}
 
+    @app.context_processor
+    def inject_site_name() -> dict:
+        # Nombre de la marca para títulos, sidebar y landing (ver Config.SITE_NAME).
+        return {"site_name": app.config["SITE_NAME"]}
+
 
 def register_commands(app: Flask) -> None:
     import click

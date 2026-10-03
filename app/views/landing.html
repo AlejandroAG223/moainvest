@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Market Dashboard — Sigue el mercado en tiempo real</title>
+  <title>{{ site_name }} — Sigue el mercado en tiempo real</title>
   <meta name="description" content="Consulta precios en vivo de tus acciones favoritas y entiende su riesgo con gráficos claros, sin necesidad de ser experto en finanzas.">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -13,8 +13,8 @@
 
   <header class="landing-nav">
     <div class="landing-nav__brand">
-      <img class="landing-nav__logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="Market Dashboard">
-      <span>Market Dashboard</span>
+      <img class="landing-nav__logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ site_name }}">
+      <span>{{ site_name }}</span>
     </div>
     <a class="landing-nav__cta" href="{{ url_for('graficas.index') }}">Entrar al panel</a>
   </header>
@@ -117,7 +117,7 @@
     </section>
 
     <section class="landing-final-cta">
-      <img class="landing-final-cta__logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="Market Dashboard">
+      <img class="landing-final-cta__logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ site_name }}">
       <h2>Empieza a explorar el mercado ahora mismo</h2>
       <p>Es gratis y no necesitas crear una cuenta.</p>
       <a class="landing-btn landing-btn--primary" href="{{ url_for('graficas.index') }}">
@@ -127,7 +127,7 @@
   </main>
 
   <footer class="landing-footer">
-    <img class="landing-footer__logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="Market Dashboard">
+    <img class="landing-footer__logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="{{ site_name }}">
     <p>
       Los precios provienen de Yahoo Finance y pueden tener un ligero
       retraso. Esta herramienta es informativa y no constituye

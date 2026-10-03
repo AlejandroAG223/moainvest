@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Análisis {{ ticker }} · Market Dashboard{% endblock %}
+{% block title %}Análisis {{ ticker }} · {{ site_name }}{% endblock %}
 
 {% macro pct(value) -%}
   {%- if value is none %}—{% else %}{{ "%+.1f"|format(value * 100) }}%{% endif -%}

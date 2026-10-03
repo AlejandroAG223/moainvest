@@ -18,6 +18,7 @@ from app.models import market_data
 from app.models.email import send_email
 from app.models.market_data import Quote
 from app.models.watchlists import WATCHLISTS, Symbol, Watchlist, get_watchlist
+from config import Config
 
 TOP_MOVERS = 3
 
@@ -118,9 +119,10 @@ def build_market_report(slugs: list[str] | None = None) -> MarketReport:
         "unavailable": len(unique_rows) - len(with_change),
     }
 
-    subject = f"Informe de mercado · {generated_at:%d/%m/%Y}"
+    subject = f"{Config.SITE_NAME} · Informe de mercado · {generated_at:%d/%m/%Y}"
     html = _env.get_template("market_report.html").render(
         subject=subject,
+        site_name=Config.SITE_NAME,
         generated_at=generated_at,
         sections=sections,
         summary=summary,

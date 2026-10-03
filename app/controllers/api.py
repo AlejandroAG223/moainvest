@@ -1,7 +1,7 @@
 """Controlador: API JSON (y de imágenes) que consume el JavaScript del panel."""
 from __future__ import annotations
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from app.models import analysis, market_data, quant, report
 from app.models.email import EmailError, send_email
@@ -71,8 +71,8 @@ def send_email_route():
     if not to:
         return jsonify({"error": "Indica el destinatario en 'to'"}), 400
 
-    subject = data.get("subject") or "Prueba de Market Dashboard"
-    html = data.get("html") or "<p>Este es un email de prueba enviado desde Market Dashboard.</p>"
+    subject = data.get("subject") or f"Prueba de {current_app.config['SITE_NAME']}"
+    html = data.get("html") or f"<p>Este es un email de prueba enviado desde {current_app.config['SITE_NAME']}.</p>"
 
     try:
         email_id = send_email(to, subject, html)

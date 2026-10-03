@@ -22,6 +22,18 @@ def test_index_shows_landing_page(client):
     assert b"Ver gr\xc3\xa1ficas en vivo" in response.data
 
 
+def test_pages_show_site_name(client, app):
+    site_name = app.config["SITE_NAME"]
+    assert site_name == "MoaiInvest"
+    landing = client.get("/").get_data(as_text=True)
+    assert f"<title>{site_name} — Sigue el mercado en tiempo real</title>" in landing
+    assert "Market Dashboard" not in landing
+    page = client.get("/analisis-varianza/").get_data(as_text=True)
+    assert f"· {site_name}</title>" in page
+    assert f'<span class="sidebar__title">{site_name}</span>' in page
+    assert "Market Dashboard" not in page
+
+
 def test_unknown_watchlist_is_404(client):
     assert client.get("/graficas/w/no-existe").status_code == 404
 
@@ -92,6 +104,17 @@ def test_api_email_send_returns_id(client, monkeypatch):
     assert response.get_json() == {"id": "email-123"}
 
 
+def test_api_email_send_default_subject_uses_site_name(client, monkeypatch):
+    sent = {}
+    monkeypatch.setattr(
+        "app.controllers.api.send_email",
+        lambda to, subject, html: sent.update(subject=subject, html=html) or "email-123",
+    )
+    client.post("/api/email/send", json={"to": "test@example.com"})
+    assert sent["subject"] == "Prueba de MoaiInvest"
+    assert "MoaiInvest" in sent["html"]
+
+
 def test_api_email_send_reports_provider_errors(client, monkeypatch):
     from app.models.email import EmailError
 
@@ -110,6 +133,7 @@ def test_api_report_preview_returns_html(client, monkeypatch):
     assert response.status_code == 200
     assert response.mimetype == "text/html"
     assert b"Informe de mercado" in response.data
+    assert b"MoaiInvest" in response.data
 
 
 def test_api_report_preview_unknown_watchlist_is_404(client):
@@ -160,7 +184,7 @@ def test_api_send_assets_report_sends_report_html(client, monkeypatch):
     assert response.status_code == 200
     assert response.get_json()["id"] == "email-789"
     assert sent["to"] == "test@example.com"
-    assert sent["subject"].startswith("Informe de mercado")
+    assert sent["subject"].startswith("MoaiInvest · Informe de mercado")
     assert "Resumen" in sent["html"]
 
 
