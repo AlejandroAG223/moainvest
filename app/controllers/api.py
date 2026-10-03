@@ -5,7 +5,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 
 from app.models import analysis, market_data, quant, report
 from app.models.email import EmailError, send_email
-from app.models.watchlists import get_watchlist
+from app.models.watchlists import WATCHLISTS, get_watchlist
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -13,6 +13,22 @@ ALLOWED_INTERVALS = {"1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"}
 ALLOWED_RANGES = {"1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "max"}
 MAX_VOLATILITY_TICKERS = 6
 QUANT_PERIODS = {"1y", "2y", "5y", "max"}
+
+
+@bp.get("/watchlists")
+def watchlists():
+    """Registro de watchlists (slug, nombre, icono y símbolos) para el front-end."""
+    return jsonify(
+        [
+            {
+                "slug": w.slug,
+                "name": w.name,
+                "icon": w.icon,
+                "symbols": [{"ticker": s.ticker, "name": s.display_name} for s in w.symbols],
+            }
+            for w in WATCHLISTS
+        ]
+    )
 
 
 @bp.get("/quote/<ticker>")
