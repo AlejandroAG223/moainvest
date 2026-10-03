@@ -100,7 +100,7 @@ def send_assets_report():
         return jsonify({"error": str(exc)}), 404
 
     try:
-        email_id = send_email(to, market_report.subject, market_report.html)
+        email_id = send_email(to, market_report.subject, market_report.html, attachments=market_report.attachments)
     except EmailError as exc:
         return jsonify({"error": str(exc)}), 502
 
@@ -124,7 +124,9 @@ def report_preview():
         market_report = report.build_market_report(_parse_slugs(request.args.get("watchlists")))
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 404
-    return Response(market_report.html, mimetype="text/html")
+    # En el navegador no existen los adjuntos ``cid:``: se sirve la versión
+    # con los gráficos embebidos.
+    return Response(market_report.preview_html, mimetype="text/html")
 
 
 @bp.post("/report/send")

@@ -1,3 +1,5 @@
+import base64
+
 import pytest
 
 from app.models import report
@@ -65,8 +67,8 @@ def test_build_market_report_escapes_html(monkeypatch):
 def test_send_market_report_sends_built_html(monkeypatch):
     sent = {}
 
-    def _send(to, subject, html):
-        sent.update(to=to, subject=subject, html=html)
+    def _send(to, subject, html, attachments=None):
+        sent.update(to=to, subject=subject, html=html, attachments=attachments)
         return "email-1"
 
     monkeypatch.setattr("app.models.report.send_email", _send)
@@ -74,3 +76,36 @@ def test_send_market_report_sends_built_html(monkeypatch):
     assert sent["to"] == "a@example.com"
     assert sent["subject"].startswith("MoaiInvest · Informe de mercado")
     assert "<html" in sent["html"]
+    assert [a["filename"] for a in sent["attachments"]] == ["grafico-overview.png"]
+
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def test_build_market_report_adds_one_chart_per_watchlist():
+    market_report = report.build_market_report(["overview", "gaming-multimedia"])
+    assert [c.content_id for c in market_report.charts] == ["chart-overview", "chart-gaming-multimedia"]
+    assert all(c.png.startswith(PNG_SIGNATURE) for c in market_report.charts)
+    assert 'src="cid:chart-overview"' in market_report.html
+    assert "data:image/png;base64," not in market_report.html
+    assert 'src="data:image/png;base64,' in market_report.preview_html
+    assert "cid:" not in market_report.preview_html
+
+
+def test_report_attachments_use_resend_inline_format():
+    attachment = report.build_market_report(["overview"]).attachments[0]
+    assert attachment["content_id"] == "chart-overview"
+    assert attachment["filename"] == "grafico-overview.png"
+    assert attachment["content_type"] == "image/png"
+    assert base64.b64decode(attachment["content"]).startswith(PNG_SIGNATURE)
+
+
+def test_build_market_report_survives_chart_errors(monkeypatch):
+    def _boom(watchlist):
+        raise RuntimeError("matplotlib roto")
+
+    monkeypatch.setattr("app.models.report.report_charts.render_watchlist_performance", _boom)
+    market_report = report.build_market_report(["overview"])
+    assert market_report.charts == []
+    assert "cid:" not in market_report.html
+    assert "S&amp;P 500" in market_report.html

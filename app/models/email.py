@@ -15,8 +15,18 @@ class EmailError(RuntimeError):
     """Error al enviar un email a través de Resend."""
 
 
-def send_email(to: str | list[str], subject: str, html: str, *, from_email: str | None = None) -> str:
+def send_email(
+    to: str | list[str],
+    subject: str,
+    html: str,
+    *,
+    from_email: str | None = None,
+    attachments: list[dict] | None = None,
+) -> str:
     """Envía un email con Resend y devuelve el id del envío.
+
+    ``attachments`` usa el formato de Resend (``filename``, ``content`` en
+    base64 y, para imágenes en línea, ``content_id``).
 
     Requiere ``RESEND_API_KEY`` en el .env. Lanza ``EmailError`` si falta la
     clave o si la API de Resend devuelve un error.
@@ -26,15 +36,17 @@ def send_email(to: str | list[str], subject: str, html: str, *, from_email: str 
 
     resend.api_key = Config.RESEND_API_KEY
 
+    params = {
+        "from": from_email or Config.RESEND_FROM_EMAIL,
+        "to": [to] if isinstance(to, str) else to,
+        "subject": subject,
+        "html": html,
+    }
+    if attachments:
+        params["attachments"] = attachments
+
     try:
-        response = resend.Emails.send(
-            {
-                "from": from_email or Config.RESEND_FROM_EMAIL,
-                "to": [to] if isinstance(to, str) else to,
-                "subject": subject,
-                "html": html,
-            }
-        )
+        response = resend.Emails.send(params)
     except Exception as exc:  # la excepción concreta la define el SDK de resend
         raise EmailError(str(exc)) from exc
 

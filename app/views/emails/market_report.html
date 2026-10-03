@@ -92,6 +92,11 @@
               <div style="font-size:15px;font-weight:700;margin-bottom:8px;">
                 {{ section.watchlist.icon }} {{ section.watchlist.name }}
               </div>
+              {% if section.chart %}
+              <img src="{{ chart_src(section.chart) }}" width="592"
+                   alt="Gráfico: variación en el último mes de {{ section.watchlist.name }}"
+                   style="display:block;width:100%;max-width:592px;height:auto;border:0;margin:0 0 12px;">
+              {% endif %}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
                 <tr style="color:#787b86;text-align:left;">
                   <th style="padding:6px 4px;border-bottom:1px solid #e0e3eb;font-weight:600;">Activo</th>

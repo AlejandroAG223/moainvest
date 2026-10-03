@@ -136,6 +136,9 @@ def test_api_report_preview_returns_html(client, monkeypatch):
     assert response.mimetype == "text/html"
     assert b"Informe de mercado" in response.data
     assert b"MoaiInvest" in response.data
+    # En el navegador no hay adjuntos: los gráficos van embebidos.
+    assert b'src="data:image/png;base64,' in response.data
+    assert b"cid:" not in response.data
 
 
 def test_api_report_preview_unknown_watchlist_is_404(client):
@@ -174,8 +177,8 @@ def test_api_send_assets_report_unknown_watchlist_is_404(client):
 def test_api_send_assets_report_sends_report_html(client, monkeypatch):
     sent = {}
 
-    def _send(to, subject, html):
-        sent.update(to=to, subject=subject, html=html)
+    def _send(to, subject, html, attachments=None):
+        sent.update(to=to, subject=subject, html=html, attachments=attachments)
         return "email-789"
 
     monkeypatch.setattr("app.models.report.market_data.get_quote", _fake_quote)
@@ -188,12 +191,15 @@ def test_api_send_assets_report_sends_report_html(client, monkeypatch):
     assert sent["to"] == "test@example.com"
     assert sent["subject"].startswith("MoaiInvest · Informe de mercado")
     assert "Resumen" in sent["html"]
+    # El gráfico de la watchlist viaja como imagen en línea referenciada por cid.
+    assert 'src="cid:chart-overview"' in sent["html"]
+    assert [a["content_id"] for a in sent["attachments"]] == ["chart-overview"]
 
 
 def test_api_send_assets_report_reports_provider_errors(client, monkeypatch):
     from app.models.email import EmailError
 
-    def _raise(to, subject, html):
+    def _raise(to, subject, html, attachments=None):
         raise EmailError("Falta RESEND_API_KEY en el .env")
 
     monkeypatch.setattr("app.models.report.market_data.get_quote", _fake_quote)
