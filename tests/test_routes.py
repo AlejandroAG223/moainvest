@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from app.models.market_data import Quote
@@ -198,9 +200,27 @@ def test_quant_stats_index_redirects_to_fundamentales(client):
 
 def test_quant_stats_sidebar_sections_keep_the_asset(client, fake_uec):
     html = client.get("/quant-stats/fundamentales?ticker=aapl").data.decode()
-    assert "QUANT STATS" in html
+    assert "Quant stats" in html
     assert "Gráficas y fundamentales estadísticos" in html
     assert 'href="/quant-stats/revision?ticker=AAPL"' in html
+
+
+def _sidebar_link_names(html: str) -> list[str]:
+    """Textos de los enlaces del sidebar: apps, subsecciones y watchlists."""
+    pattern = r'<span class="sidebar__(?:app|section)-name">([^<]*)</span>'
+    return re.findall(pattern, html.split('<aside class="sidebar"', 1)[1].split("</aside>", 1)[0])
+
+
+@pytest.mark.parametrize("url", ["/graficas/w/overview", "/quant-stats/fundamentales", "/analisis-varianza/"])
+def test_sidebar_links_use_sentence_case(client, fake_uec, url):
+    names = _sidebar_link_names(client.get(url).data.decode())
+    assert "Quant stats" in names and "Análisis de varianza" in names
+    if url.startswith("/graficas"):
+        assert {"Resumen", "Electrónica de consumo", "Gaming y multimedia"} <= set(names)
+    if url.startswith("/quant-stats"):
+        assert {"Gráficas y fundamentales estadísticos", "Revisión analítica"} <= set(names)
+    for name in names:
+        assert name == name[:1].upper() + name[1:].lower(), name
 
 
 def test_fundamentales_shows_the_three_quantstats_modules(client, fake_uec):

@@ -166,6 +166,14 @@ La API sirve las gráficas para cualquier ticker:
 `GET /api/quant/<ticker>/earnings.png?count=4` y las versiones propias de
 `drawdown.png` y `monthly-heatmap.png`.
 
+### Nombres del sidebar
+
+Los textos de los enlaces del sidebar (apps de `apps.py`, sus `sections` y las
+watchlists de `watchlists.py`) se escriben en formato frase: primera letra en
+mayúscula y el resto en minúscula ("Quant stats", "Análisis de varianza"). Se
+escriben así en su origen, sin `text-transform`; `tests/test_apps.py` lo
+comprueba.
+
 ## Puesta en marcha
 
 Requiere [uv](https://docs.astral.sh/uv/) y Python 3.12+.

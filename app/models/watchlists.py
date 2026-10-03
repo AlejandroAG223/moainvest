@@ -53,7 +53,7 @@ WATCHLISTS: tuple[Watchlist, ...] = (
     ),
     Watchlist(
         slug="consumer-electronics",
-        name="Electrónica de Consumo",
+        name="Electrónica de consumo",
         icon="📱",
         symbols=(
             _s("AAPL", "Apple"),
@@ -65,7 +65,7 @@ WATCHLISTS: tuple[Watchlist, ...] = (
     ),
     Watchlist(
         slug="gaming-multimedia",
-        name="Gaming y Multimedia",
+        name="Gaming y multimedia",
         icon="🎮",
         symbols=(
             _s("MSFT", "Microsoft"),
