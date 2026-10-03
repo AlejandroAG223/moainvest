@@ -784,3 +784,65 @@ a {
 .fx-layer--photo::after {
   background: linear-gradient(90deg, rgba(13, 17, 23, 0.9) 0%, rgba(13, 17, 23, 0.72) 40%, rgba(13, 17, 23, 0.5) 100%);
 }
+
+/* ---- Informes: iconos de línea (partials/icons.html) ----
+   Heredan el color del texto (stroke="currentColor") y miden 1em, así que
+   escalan con la tipografía de cada contexto. */
+.ui-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
+
+.informes-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.informes-title__icon {
+  color: var(--accent);
+}
+
+.informes-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.informes-watchlists__icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.informes-watchlists__item:has(input:checked) .informes-watchlists__icon {
+  color: var(--accent);
+}
+
+.informes-page .varianza-form__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.informes-email {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 140px;
+}
+
+.informes-email .varianza-form__input {
+  padding-left: 2.1rem;
+}
+
+.informes-email__icon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}

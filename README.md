@@ -174,6 +174,23 @@ mayúscula y el resto en minúscula ("Quant stats", "Análisis de varianza"). Se
 escriben así en su origen, sin `text-transform`; `tests/test_apps.py` lo
 comprueba.
 
+### Iconos de Informes
+
+La página de Informes usa iconos de línea (trazados de
+[Lucide](https://lucide.dev), licencia ISC) como SVG inline desde el macro
+`app/views/partials/icons.html`, sin CDN ni dependencias:
+
+```jinja
+{% import "partials/icons.html" as icons %}
+{{ icons.icon("send") }}                      {# decorativo: aria-hidden #}
+{{ icons.icon("eye", label="Ver") }}          {# con significado: role="img" #}
+```
+
+Heredan el color del texto (`stroke="currentColor"`) y miden `1em` (clase
+`.ui-icon`). Para añadir uno, anexa su trazado al diccionario `_paths`; el
+icono de cada watchlist se elige por slug en `watchlist_icons` (las que no
+estén usan `list`).
+
 ## Puesta en marcha
 
 Requiere [uv](https://docs.astral.sh/uv/) y Python 3.12+.

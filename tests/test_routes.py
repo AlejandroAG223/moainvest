@@ -434,3 +434,19 @@ def test_informes_page_uses_cloudinary_images_when_configured(client, monkeypatc
     assert b"https://res.cloudinary.com/demo/image/upload/" in response.data
     assert b"f_auto" in response.data and b"q_auto" in response.data
     assert b"srcset=" in response.data
+
+
+def test_informes_page_uses_inline_svg_icons_instead_of_emojis(client):
+    response = client.get("/informes/")
+    html = response.data.decode()
+    content = html[html.index('id="informes-page"'):]
+    # Iconos de línea inline que heredan el color y son decorativos.
+    for name in ("file-text", "layers", "chart-column", "smartphone", "gamepad", "eye", "send", "mail"):
+        assert f"ui-icon--{name}" in content
+    for svg in content.split("<svg")[1:]:
+        tag = svg[: svg.index(">")]
+        assert 'stroke="currentColor"' in tag
+        assert 'aria-hidden="true"' in tag
+    # Ningún emoji de watchlist dentro del contenido de la página.
+    for watchlist in WATCHLISTS:
+        assert watchlist.icon not in content

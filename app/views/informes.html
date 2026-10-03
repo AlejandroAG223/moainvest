@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "partials/icons.html" as icons %}
 
 {% block title %}Informes · Market Dashboard{% endblock %}
 
@@ -32,7 +33,7 @@
 <div class="varianza-page informes-page" id="informes-page">
   <header class="varianza-header fx-host fx-host--header">
     {{ fx_layer("charts") }}
-    <h1>Informe de activos</h1>
+    <h1 class="informes-title">{{ icons.icon("file-text", extra_class="informes-title__icon") }}Informe de activos</h1>
     <p class="varianza-header__hint">
       Elige las watchlists, revisa el informe y envíalo por correo.
     </p>
@@ -40,11 +41,12 @@
 
   <fieldset class="informes-watchlists fx-host">
     {{ fx_layer("stats") }}
-    <legend>Watchlists incluidas</legend>
+    <legend class="informes-legend">{{ icons.icon("layers") }}Watchlists incluidas</legend>
     {% for watchlist in watchlists %}
     <label class="informes-watchlists__item">
       <input type="checkbox" name="watchlists" value="{{ watchlist.slug }}" checked>
-      {{ watchlist.icon }} {{ watchlist.name }}
+      {{ icons.icon(icons.watchlist_icons.get(watchlist.slug, "list"), extra_class="informes-watchlists__icon") }}
+      <span>{{ watchlist.name }}</span>
     </label>
     {% endfor %}
   </fieldset>
@@ -52,20 +54,25 @@
   <div class="varianza-form informes-actions fx-host fx-host--row">
     {{ fx_layer("sports") }}
     <button type="button" class="varianza-form__btn varianza-form__btn--secondary" id="preview-btn">
-      Ver informe
+      {{ icons.icon("eye") }}<span>Ver informe</span>
     </button>
   </div>
 
   <form class="varianza-form informes-actions" id="send-form">
-    <input
-      type="email"
-      id="email-input"
-      class="varianza-form__input"
-      placeholder="destino@ejemplo.com"
-      autocomplete="email"
-      required
-    >
-    <button type="submit" class="varianza-form__btn" id="send-btn">Enviar por correo</button>
+    <span class="informes-email">
+      {{ icons.icon("mail", extra_class="informes-email__icon") }}
+      <input
+        type="email"
+        id="email-input"
+        class="varianza-form__input"
+        placeholder="destino@ejemplo.com"
+        autocomplete="email"
+        required
+      >
+    </span>
+    <button type="submit" class="varianza-form__btn" id="send-btn">
+      {{ icons.icon("send") }}<span>Enviar por correo</span>
+    </button>
   </form>
 
   <p class="varianza-status" id="informes-status" hidden></p>
