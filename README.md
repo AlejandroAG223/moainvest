@@ -1,4 +1,4 @@
-# Market Dashboard
+# MoaiInvest
 
 Panel de precios en vivo, estilo TradingView, construido con **Flask**
 (arquitectura **MVC**) y **UV** para la gestión del proyecto/dependencias.
@@ -165,6 +165,41 @@ La API sirve las gráficas para cualquier ticker:
 `GET /api/quant/<ticker>/montecarlo.png?period=2y&sims=1000&bust=-20&goal=50`,
 `GET /api/quant/<ticker>/earnings.png?count=4` y las versiones propias de
 `drawdown.png` y `monthly-heatmap.png`.
+
+### Nombres del sidebar
+
+Los textos de los enlaces del sidebar (apps de `apps.py`, sus `sections` y las
+watchlists de `watchlists.py`) se escriben en formato frase: primera letra en
+mayúscula y el resto en minúscula ("Quant stats", "Análisis de varianza"). Se
+escriben así en su origen, sin `text-transform`; `tests/test_apps.py` lo
+comprueba.
+
+### Iconos de Informes
+
+La página de Informes usa iconos de línea (trazados de
+[Lucide](https://lucide.dev), licencia ISC) como SVG inline desde el macro
+`app/views/partials/icons.html`, sin CDN ni dependencias:
+
+```jinja
+{% import "partials/icons.html" as icons %}
+{{ icons.icon("send") }}                      {# decorativo: aria-hidden #}
+{{ icons.icon("eye", label="Ver") }}          {# con significado: role="img" #}
+```
+
+Heredan el color del texto (`stroke="currentColor"`) y miden `1em` (clase
+`.ui-icon`). Para añadir uno, anexa su trazado al diccionario `_paths`; el
+icono de cada watchlist se elige por slug en `watchlist_icons` (las que no
+estén usan `list`).
+
+### Nombre de la marca
+
+El nombre visible de la app (**MoaiInvest**) vive en un único sitio:
+`Config.SITE_NAME` en `config.py`. Un context processor lo inyecta en todas
+las plantillas como `site_name` (títulos de página, sidebar y landing) y
+`app/models/report.py` lo usa en el asunto y la cabecera del informe por
+email. Para renombrar la app basta con cambiar esa línea. El `name` de
+`pyproject.toml` (`market-dashboard`) y el prefijo de Cloudinary son
+identificadores técnicos y no se muestran al usuario.
 
 ## Puesta en marcha
 

@@ -1,7 +1,7 @@
 """Registro de "apps" de primer nivel del sidebar.
 
 Este es el nivel de extensión más alto del panel: cada ``App`` es una
-sección independiente (por ejemplo "Gráficas" o "Análisis de Varianza"),
+sección independiente (por ejemplo "Gráficas" o "Análisis de varianza"),
 con su propio icono, su propio blueprint/rutas y, opcionalmente, su propia
 navegación anidada en el sidebar (ver ``kind``).
 
@@ -45,10 +45,10 @@ class App:
 
 APPS: tuple[App, ...] = (
     App(slug="graficas", name="Gráficas", icon="📈", endpoint="graficas.index", kind="watchlists"),
-    App(slug="analisis-varianza", name="Análisis de Varianza", icon="🧮", endpoint="varianza.index", kind="blank"),
+    App(slug="analisis-varianza", name="Análisis de varianza", icon="🧮", endpoint="varianza.index", kind="blank"),
     App(
         slug="quant-stats",
-        name="QUANT STATS",
+        name="Quant stats",
         icon="🧪",
         endpoint="quant_stats.index",
         kind="sections",

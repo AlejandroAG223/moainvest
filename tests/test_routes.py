@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from app.models.market_data import Quote
@@ -20,6 +22,18 @@ def test_index_shows_landing_page(client):
     response = client.get("/")
     assert response.status_code == 200
     assert b"Ver gr\xc3\xa1ficas en vivo" in response.data
+
+
+def test_pages_show_site_name(client, app):
+    site_name = app.config["SITE_NAME"]
+    assert site_name == "MoaiInvest"
+    landing = client.get("/").get_data(as_text=True)
+    assert f"<title>{site_name} — Sigue el mercado en tiempo real</title>" in landing
+    assert "Market Dashboard" not in landing
+    page = client.get("/analisis-varianza/").get_data(as_text=True)
+    assert f"· {site_name}</title>" in page
+    assert f'<span class="sidebar__title">{site_name}</span>' in page
+    assert "Market Dashboard" not in page
 
 
 def test_unknown_watchlist_is_404(client):
@@ -92,6 +106,17 @@ def test_api_email_send_returns_id(client, monkeypatch):
     assert response.get_json() == {"id": "email-123"}
 
 
+def test_api_email_send_default_subject_uses_site_name(client, monkeypatch):
+    sent = {}
+    monkeypatch.setattr(
+        "app.controllers.api.send_email",
+        lambda to, subject, html: sent.update(subject=subject, html=html) or "email-123",
+    )
+    client.post("/api/email/send", json={"to": "test@example.com"})
+    assert sent["subject"] == "Prueba de MoaiInvest"
+    assert "MoaiInvest" in sent["html"]
+
+
 def test_api_email_send_reports_provider_errors(client, monkeypatch):
     from app.models.email import EmailError
 
@@ -110,6 +135,7 @@ def test_api_report_preview_returns_html(client, monkeypatch):
     assert response.status_code == 200
     assert response.mimetype == "text/html"
     assert b"Informe de mercado" in response.data
+    assert b"MoaiInvest" in response.data
 
 
 def test_api_report_preview_unknown_watchlist_is_404(client):
@@ -160,7 +186,7 @@ def test_api_send_assets_report_sends_report_html(client, monkeypatch):
     assert response.status_code == 200
     assert response.get_json()["id"] == "email-789"
     assert sent["to"] == "test@example.com"
-    assert sent["subject"].startswith("Informe de mercado")
+    assert sent["subject"].startswith("MoaiInvest · Informe de mercado")
     assert "Resumen" in sent["html"]
 
 
@@ -198,9 +224,27 @@ def test_quant_stats_index_redirects_to_fundamentales(client):
 
 def test_quant_stats_sidebar_sections_keep_the_asset(client, fake_uec):
     html = client.get("/quant-stats/fundamentales?ticker=aapl").data.decode()
-    assert "QUANT STATS" in html
+    assert "Quant stats" in html
     assert "Gráficas y fundamentales estadísticos" in html
     assert 'href="/quant-stats/revision?ticker=AAPL"' in html
+
+
+def _sidebar_link_names(html: str) -> list[str]:
+    """Textos de los enlaces del sidebar: apps, subsecciones y watchlists."""
+    pattern = r'<span class="sidebar__(?:app|section)-name">([^<]*)</span>'
+    return re.findall(pattern, html.split('<aside class="sidebar"', 1)[1].split("</aside>", 1)[0])
+
+
+@pytest.mark.parametrize("url", ["/graficas/w/overview", "/quant-stats/fundamentales", "/analisis-varianza/"])
+def test_sidebar_links_use_sentence_case(client, fake_uec, url):
+    names = _sidebar_link_names(client.get(url).data.decode())
+    assert "Quant stats" in names and "Análisis de varianza" in names
+    if url.startswith("/graficas"):
+        assert {"Resumen", "Electrónica de consumo", "Gaming y multimedia"} <= set(names)
+    if url.startswith("/quant-stats"):
+        assert {"Gráficas y fundamentales estadísticos", "Revisión analítica"} <= set(names)
+    for name in names:
+        assert name == name[:1].upper() + name[1:].lower(), name
 
 
 def test_fundamentales_shows_the_three_quantstats_modules(client, fake_uec):
@@ -414,3 +458,19 @@ def test_informes_page_uses_cloudinary_images_when_configured(client, monkeypatc
     assert b"https://res.cloudinary.com/demo/image/upload/" in response.data
     assert b"f_auto" in response.data and b"q_auto" in response.data
     assert b"srcset=" in response.data
+
+
+def test_informes_page_uses_inline_svg_icons_instead_of_emojis(client):
+    response = client.get("/informes/")
+    html = response.data.decode()
+    content = html[html.index('id="informes-page"'):]
+    # Iconos de línea inline que heredan el color y son decorativos.
+    for name in ("file-text", "layers", "chart-column", "smartphone", "gamepad", "eye", "send", "mail"):
+        assert f"ui-icon--{name}" in content
+    for svg in content.split("<svg")[1:]:
+        tag = svg[: svg.index(">")]
+        assert 'stroke="currentColor"' in tag
+        assert 'aria-hidden="true"' in tag
+    # Ningún emoji de watchlist dentro del contenido de la página.
+    for watchlist in WATCHLISTS:
+        assert watchlist.icon not in content
