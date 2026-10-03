@@ -64,6 +64,15 @@ def test_api_quote(client, monkeypatch):
     assert payload["is_up"] is True
 
 
+def test_api_watchlists_lists_registry(client):
+    response = client.get("/api/watchlists")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert [w["slug"] for w in payload] == [w.slug for w in WATCHLISTS]
+    first = WATCHLISTS[0]
+    assert payload[0]["symbols"][0] == {"ticker": first.symbols[0].ticker, "name": first.symbols[0].display_name}
+
+
 def test_api_candles_rejects_bad_params(client):
     response = client.get("/api/candles/AAPL?range=bogus&interval=1d")
     assert response.status_code == 400
