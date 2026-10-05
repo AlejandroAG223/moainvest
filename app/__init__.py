@@ -37,6 +37,7 @@ def register_blueprints(app: Flask) -> None:
     from app.controllers.graficas import bp as graficas_bp
     from app.controllers.home import bp as home_bp
     from app.controllers.informes import bp as informes_bp
+    from app.controllers.moainvest import bp as moainvest_bp
     from app.controllers.quant_stats import bp as quant_stats_bp
     from app.controllers.varianza import bp as varianza_bp
 
@@ -45,6 +46,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(varianza_bp)
     app.register_blueprint(quant_stats_bp)
     app.register_blueprint(informes_bp)
+    app.register_blueprint(moainvest_bp)
     app.register_blueprint(api_bp)
 
 

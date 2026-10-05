@@ -1,0 +1,13 @@
+{
+  "name": "moainvest-css",
+  "private": true,
+  "description": "Solo para compilar el CSS de Tailwind del sitio MOAINVEST servido por Flask. La app no necesita Node para ejecutarse.",
+  "scripts": {
+    "build:css": "tailwindcss -i app/static/moainvest/src/moainvest.css -o app/static/moainvest/moainvest.css --minify",
+    "watch:css": "tailwindcss -i app/static/moainvest/src/moainvest.css -o app/static/moainvest/moainvest.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}

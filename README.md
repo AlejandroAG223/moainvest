@@ -201,6 +201,28 @@ email. Para renombrar la app basta con cambiar esa línea. El `name` de
 `pyproject.toml` (`market-dashboard`) y el prefijo de Cloudinary son
 identificadores técnicos y no se muestran al usuario.
 
+### Sitio MOAINVEST (servido por Flask)
+
+El front-end MOAINVEST, que antes era una app Next.js en `moainvest/`, lo
+sirve ahora Flask bajo `/moainvest/` con la misma capa visual:
+
+| Ruta | Contenido |
+|---|---|
+| `/moainvest/` | **Resumen**: watchlist «Resumen» con precios en vivo y la línea del último mes |
+| `/moainvest/graficas/<watchlist>/<ticker>` | **Gráficas**: velas, rangos de 1D a Todo y precios del resto de la watchlist (`/moainvest/graficas` y `/moainvest/graficas/<watchlist>` redirigen al primer símbolo) |
+| `/moainvest/informe` | **Informe**: elegir watchlists, vista previa y envío por correo |
+
+- Controlador `app/controllers/moainvest.py` (blueprint `moainvest`; el
+  prefijo se cambia en su `url_prefix`) y plantillas en `app/views/moainvest/`.
+- `app/static/moainvest/moainvest.js` sustituye a los componentes de React
+  (precios cada 15 s, sparklines, gráfico de velas, informe y menú móvil) y
+  consume la misma API JSON `/api/...`.
+- El CSS es Tailwind v4. La fuente está en `app/static/moainvest/src/moainvest.css`
+  y el compilado, `app/static/moainvest/moainvest.css`, se commitea, así que
+  Flask no necesita Node para ejecutarse. Si cambias clases en las plantillas o
+  en el JS, regenéralo con `npm install && npm run build:css` (o
+  `npm run watch:css` mientras desarrollas).
+
 ## Puesta en marcha
 
 Requiere [uv](https://docs.astral.sh/uv/) y Python 3.12+.

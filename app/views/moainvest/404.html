@@ -1,0 +1,18 @@
+{% extends "moainvest/base.html" %}
+{% import "moainvest/_macros.html" as ui with context %}
+
+{% block title %}Página no encontrada | MOAINVEST{% endblock %}
+{% block robots %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-6xl px-5 sm:px-8 grid min-h-[60svh] place-content-center py-20 text-center">
+  <p class="eyebrow">404</p>
+  <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+    Este camino todavía no <span class="accent">existe</span>.
+  </h1>
+  <p class="mt-4 text-lg text-muted">Quizá sea una buena idea para construir juntos.</p>
+  <div class="mt-8">
+    <a href="{{ url_for('moainvest.resumen') }}" class="{{ ui.btn('primary', 'md') }}">Volver al inicio</a>
+  </div>
+</div>
+{% endblock %}
