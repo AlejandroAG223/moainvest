@@ -1,8 +1,8 @@
 /*
- * MOAINVEST: comportamiento de las páginas servidas por Flask
- * (app/views/moainvest/). Sustituye a los componentes cliente de React del
- * antiguo front-end en Next.js. Cada bloque se activa solo si su página
- * contiene el elemento correspondiente (data-*).
+ * MOAINVEST: comportamiento de las páginas de app/views/moainvest/ (precios en
+ * vivo, sparklines, gráfico de velas, informe y menú móvil), sin framework.
+ * Cada bloque se activa solo si su página contiene el elemento
+ * correspondiente (data-*).
  *
  * Las clases de Tailwind que se ponen o quitan aquí deben escribirse enteras:
  * Tailwind lee este fichero al compilar static/moainvest/moainvest.css.

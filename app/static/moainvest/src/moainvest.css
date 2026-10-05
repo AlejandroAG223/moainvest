@@ -1,19 +1,19 @@
 /*
  * Fuente Tailwind CSS v4 del sitio MOAINVEST (app/views/moainvest/).
- * Mismos tokens y utilidades que el antiguo moainvest/app/globals.css.
  *
- * El resultado compilado, static/moainvest/moainvest.css, se commitea para
- * que Flask no necesite Node en tiempo de ejecución. Tras cambiar clases en
- * las plantillas o en moainvest.js, regenéralo con:
+ * El resultado compilado, static/moainvest/moainvest.css, se commitea, así que
+ * la app no necesita compilar nada para ejecutarse. Tras cambiar clases en las
+ * plantillas o en moainvest.js, regenéralo (sin Node, con el binario standalone
+ * de Tailwind que instala uv):
  *
- *   npm install && npm run build:css
+ *   uv run flask --app run build-css          (o --watch mientras desarrollas)
  */
 @import "tailwindcss" source(none);
 @source "../../../views/moainvest";
 @source "../../../views/partials/icons.html";
 @source "../moainvest.js";
 
-/* Fuentes de Google Fonts (en Next las definía next/font como variables). */
+/* Fuentes de Google Fonts (se cargan en moainvest/base.html). */
 :root {
   --font-geist: "Geist";
   --font-geist-mono: "Geist Mono";

@@ -12,15 +12,16 @@ Para añadir una nueva app:
 2. Crea el blueprint correspondiente en ``app/controllers`` y regístralo
    en ``app/__init__.py``.
 3. Si la app necesita su propia navegación anidada en el sidebar (como las
-   watchlists de "Gráficas"), añade un nuevo valor de ``kind`` y su bloque
-   correspondiente en ``app/views/partials/sidebar.html``.
+   subsecciones de "Quant stats"), usa ``kind="sections"`` o añade un nuevo
+   valor de ``kind`` y su bloque correspondiente en
+   ``app/views/partials/sidebar.html``.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
 
-AppKind = Literal["watchlists", "sections", "blank"]
+AppKind = Literal["sections", "blank"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +45,7 @@ class App:
 
 
 APPS: tuple[App, ...] = (
-    App(slug="graficas", name="Gráficas", icon="📈", endpoint="graficas.index", kind="watchlists"),
+    App(slug="graficas", name="Gráficas", icon="📈", endpoint="moainvest.graficas", kind="blank"),
     App(slug="analisis-varianza", name="Análisis de varianza", icon="🧮", endpoint="varianza.index", kind="blank"),
     App(
         slug="quant-stats",

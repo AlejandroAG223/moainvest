@@ -11,7 +11,7 @@ load_dotenv()
 class Config:
     """Configuración base. Sirve tal cual para desarrollo."""
 
-    # Nombre de la marca: se muestra en títulos, sidebar, landing y emails.
+    # Nombre de la marca: se muestra en títulos, sidebar y emails.
     # Cambiarlo aquí basta para renombrar toda la app.
     SITE_NAME = "MoaiInvest"
 
