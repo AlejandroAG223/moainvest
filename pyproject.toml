@@ -21,6 +21,8 @@ package = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# Cada app tiene su carpeta en tests/ (tests/<app>/test_routes.py, ...).
+addopts = "--import-mode=importlib"
 
 [dependency-groups]
 dev = [

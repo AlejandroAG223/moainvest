@@ -1,0 +1,97 @@
+{% extends "core/base.html" %}
+
+{% block title %}Análisis de Varianza · {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="varianza-page" id="varianza-page">
+  <header class="varianza-header">
+    <h1>Análisis de Varianza</h1>
+    <p class="varianza-header__hint">
+      Escribe el ticker de un activo de Yahoo Finance y descarga su histórico de precios.
+    </p>
+  </header>
+
+  <form class="varianza-form" id="varianza-form">
+    <input
+      type="text"
+      id="ticker-input"
+      class="varianza-form__input"
+      placeholder="Ticker, p. ej. AAPL"
+      autocomplete="off"
+      required
+    >
+    <select id="range-select" class="varianza-form__select">
+      <option value="1mo">1 mes</option>
+      <option value="6mo" selected>6 meses</option>
+      <option value="1y">1 año</option>
+      <option value="5y">5 años</option>
+      <option value="max">Todo</option>
+    </select>
+    <button type="submit" class="varianza-form__btn" id="fetch-btn">Descargar</button>
+  </form>
+
+  <p class="varianza-status" id="varianza-status" hidden></p>
+
+  <div class="varianza-result" id="varianza-result" hidden>
+    <div class="varianza-result__toolbar">
+      <span id="result-summary"></span>
+      <button type="button" class="varianza-form__btn varianza-form__btn--secondary" id="download-csv-btn">
+        Descargar precios a CSV
+      </button>
+    </div>
+    <div class="varianza-table-wrap">
+      <table class="varianza-table" id="varianza-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Apertura</th>
+            <th>Máximo</th>
+            <th>Mínimo</th>
+            <th>Cierre</th>
+            <th>Volumen</th>
+          </tr>
+        </thead>
+        <tbody id="varianza-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <section class="volatility-section">
+    <h2>Volatilidad mensual (histograma)</h2>
+    <p class="varianza-header__hint">
+      Indica uno o varios tickers separados por coma. Por cada mes del período elegido se
+      calcula la volatilidad (desviación estándar de los retornos diarios, anualizada con
+      base en 252 días de negociación) y se muestra la distribución de esas volatilidades
+      mensuales en un histograma por activo.
+    </p>
+
+    <form class="varianza-form" id="volatility-form">
+      <input
+        type="text"
+        id="tickers-input"
+        class="varianza-form__input"
+        placeholder="Tickers separados por coma, p. ej. AAPL, MSFT, GOOG"
+        autocomplete="off"
+        required
+      >
+      <select id="volatility-period-select" class="varianza-form__select">
+        <option value="1y">1 año</option>
+        <option value="2y">2 años</option>
+        <option value="5y" selected>5 años</option>
+        <option value="max">Todo</option>
+      </select>
+      <button type="submit" class="varianza-form__btn" id="volatility-btn">Generar histogramas</button>
+    </form>
+
+    <p class="varianza-status" id="volatility-status" hidden></p>
+
+    <div class="volatility-chart-wrap" id="volatility-chart-wrap" hidden>
+      <img id="volatility-chart-img" alt="Histogramas de volatilidad mensual por activo">
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('varianza.static', filename='varianza.js') }}"></script>
+{% endblock %}
