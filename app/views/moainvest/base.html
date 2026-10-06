@@ -1,0 +1,100 @@
+{% import "moainvest/_macros.html" as ui with context %}
+{% import "partials/icons.html" as icons %}
+<!doctype html>
+<html lang="es" class="antialiased">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>{% block title %}MOAINVEST | Resumen, gráficas e informes de mercado{% endblock %}</title>
+  <meta name="description" content="{% block description %}Resumen del mercado, gráficas de precios en vivo e informes de activos con datos de Yahoo Finance.{% endblock %}">
+  {% block robots %}{% endblock %}
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_CO">
+  <meta property="og:site_name" content="MOAINVEST">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:description" content="{{ self.description() }}">
+  <meta property="og:image" content="{{ url_for('static', filename='moainvest/opengraph-image.png', _external=True) }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="{{ url_for('static', filename='moainvest/icon.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='moainvest/apple-icon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='moainvest/moainvest.css') }}">
+  {# Activa las animaciones de entrada solo si hay JS; sin JS todo es visible. #}
+  <script>document.documentElement.classList.add("js")</script>
+</head>
+<body class="flex min-h-svh flex-col">
+  <a href="#contenido" class="sr-only z-[60] rounded-full bg-ink px-4 py-2 text-sm text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">Saltar al contenido</a>
+
+  <header class="sticky top-0 z-50 border-b border-line/70 bg-white/85 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
+    <div class="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
+      <a href="{{ url_for('moainvest.resumen') }}" aria-label="MOAINVEST — inicio" class="inline-flex shrink-0 items-center">
+        <img src="{{ url_for('static', filename='moainvest/logo/moainvest-compact.png') }}" alt="MOAINVEST" width="844" height="110" class="h-6 w-auto sm:h-7">
+      </a>
+      <nav aria-label="Menú principal" class="hidden md:block">
+        <ul class="flex items-center gap-7 text-[0.92rem]">
+          {% for endpoint, label in moainvest_nav %}
+          <li>{{ ui.nav_link(endpoint, label) }}</li>
+          {% endfor %}
+        </ul>
+      </nav>
+      <div class="hidden items-center gap-2 md:flex">
+        <a href="{{ url_for('moainvest.informe') }}" class="{{ ui.btn('primary', 'sm') }}">Generar informe</a>
+      </div>
+      <div class="md:hidden">
+        <button type="button" data-menu-toggle aria-expanded="false" aria-controls="menu-movil" aria-label="Abrir menú"
+                class="grid size-10 place-items-center rounded-full border border-line bg-white text-ink">
+          <span data-menu-icon="open">{{ icons.icon("menu", extra_class="size-5") }}</span>
+          <span data-menu-icon="close" hidden>{{ icons.icon("x", extra_class="size-5") }}</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="menu-movil" hidden class="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto border-t border-line bg-white px-5 pt-6 pb-10 md:hidden">
+    <nav aria-label="Menú principal móvil">
+      <ul class="divide-y divide-line">
+        {% for endpoint, label in moainvest_nav %}
+        <li>{{ ui.nav_link(endpoint, label, "block py-4 text-2xl font-medium tracking-tight") }}</li>
+        {% endfor %}
+      </ul>
+    </nav>
+    <div class="mt-8 grid gap-3">
+      <a href="{{ url_for('moainvest.informe') }}" class="{{ ui.btn('primary', 'lg') }}">Generar informe</a>
+    </div>
+  </div>
+
+  <main id="contenido" class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-line bg-white">
+    <div class="mx-auto flex w-full max-w-6xl flex-col gap-10 px-5 py-12 sm:px-8 md:flex-row md:items-start md:justify-between">
+      <div>
+        <img src="{{ url_for('static', filename='moainvest/logo/moainvest-compact.png') }}" alt="MOAINVEST" width="844" height="110" class="h-6 w-auto" loading="lazy">
+        <p class="mt-4 max-w-sm text-sm leading-relaxed text-muted">
+          Datos de mercado de Yahoo Finance. Pueden tener retraso y no constituyen asesoría financiera.
+        </p>
+      </div>
+      <nav aria-label="Navegación del pie de página">
+        <ul class="flex gap-6 text-sm">
+          {% for endpoint, label in moainvest_nav %}
+          <li><a href="{{ url_for(endpoint) }}" class="text-ink/80 transition-colors hover:text-brand">{{ label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+    </div>
+    <div class="border-t border-line">
+      <div class="mx-auto flex w-full max-w-6xl flex-col gap-2 px-5 py-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <p>© 2026 MOAINVEST</p>
+        <p class="font-mono tracking-[0.14em] uppercase">Personas — Conocimiento — Oportunidades</p>
+      </div>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='moainvest/moainvest.js') }}"></script>
+</body>
+</html>

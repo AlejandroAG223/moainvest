@@ -18,33 +18,13 @@ def _fake_quote(ticker):
     )
 
 
-def test_index_shows_landing_page(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    assert b"Ver gr\xc3\xa1ficas en vivo" in response.data
-
-
 def test_pages_show_site_name(client, app):
     site_name = app.config["SITE_NAME"]
     assert site_name == "MoaiInvest"
-    landing = client.get("/").get_data(as_text=True)
-    assert f"<title>{site_name} — Sigue el mercado en tiempo real</title>" in landing
-    assert "Market Dashboard" not in landing
     page = client.get("/analisis-varianza/").get_data(as_text=True)
     assert f"· {site_name}</title>" in page
     assert f'<span class="sidebar__title">{site_name}</span>' in page
     assert "Market Dashboard" not in page
-
-
-def test_unknown_watchlist_is_404(client):
-    assert client.get("/graficas/w/no-existe").status_code == 404
-
-
-def test_show_watchlist_renders_first_symbol(client):
-    watchlist = WATCHLISTS[0]
-    response = client.get(f"/graficas/w/{watchlist.slug}")
-    assert response.status_code == 200
-    assert watchlist.symbols[0].ticker.encode() in response.data
 
 
 def test_varianza_page_is_reachable(client):
@@ -245,17 +225,15 @@ def test_quant_stats_sidebar_sections_keep_the_asset(client, fake_uec):
 
 
 def _sidebar_link_names(html: str) -> list[str]:
-    """Textos de los enlaces del sidebar: apps, subsecciones y watchlists."""
+    """Textos de los enlaces del sidebar: apps y subsecciones."""
     pattern = r'<span class="sidebar__(?:app|section)-name">([^<]*)</span>'
     return re.findall(pattern, html.split('<aside class="sidebar"', 1)[1].split("</aside>", 1)[0])
 
 
-@pytest.mark.parametrize("url", ["/graficas/w/overview", "/quant-stats/fundamentales", "/analisis-varianza/"])
+@pytest.mark.parametrize("url", ["/quant-stats/fundamentales", "/analisis-varianza/"])
 def test_sidebar_links_use_sentence_case(client, fake_uec, url):
     names = _sidebar_link_names(client.get(url).data.decode())
     assert "Quant stats" in names and "Análisis de varianza" in names
-    if url.startswith("/graficas"):
-        assert {"Resumen", "Electrónica de consumo", "Gaming y multimedia"} <= set(names)
     if url.startswith("/quant-stats"):
         assert {"Gráficas y fundamentales estadísticos", "Revisión analítica"} <= set(names)
     for name in names:
