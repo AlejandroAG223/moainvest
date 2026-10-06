@@ -1,9 +1,10 @@
 # MoaiInvest
 
 Panel de precios en vivo, estilo TradingView, construido solo con **Flask**
-(arquitectura **MVC**) y **UV** para la gestión del proyecto/dependencias
-(sin Node). El sitio principal, **MOAINVEST** (Resumen, Gráficas e Informe),
-se sirve en la raíz con su diseño rojo.
+(organizado en **apps con blueprints, al estilo Django**) y **UV** para la
+gestión del proyecto/dependencias (sin Node). El sitio principal,
+**MOAINVEST** (Resumen, Gráficas e Informe), se sirve en la raíz con su
+diseño rojo.
 Descarga los precios de **Yahoo Finance** (vía `yfinance`) y los dibuja con
 [lightweight-charts](https://github.com/tradingview/lightweight-charts), la
 propia librería open-source de gráficos de TradingView.
@@ -12,69 +13,75 @@ propia librería open-source de gráficos de TradingView.
 
 ## Arquitectura
 
+Como en Django, hay un **proyecto** (`app/`) que solo ensambla y varias
+**apps**, cada una en su paquete con la misma estructura. `app/__init__.py`
+crea la app Flask y registra las de `INSTALLED_APPS`: de cada una carga
+`views.py` (páginas), `api.py` (endpoints bajo `/api`) y `commands.py`
+(comandos de `flask`) si existen.
+
 ```
-config.py               # Configuración (variables de entorno)
-run.py                   # Punto de entrada: `uv run run.py`
+config.py                    # Configuración (variables de entorno), como settings.py
+run.py                       # Punto de entrada: `uv run run.py`
 app/
-  __init__.py            # Application factory: create_app()
-  models/                # MODEL: acceso a datos, sin Flask
-    apps.py                 # Registro de "apps" de primer nivel del sidebar
-    watchlists.py            # Registro de watchlists (Resumen, Gráficas, Informe)
-    market_data.py            # Descarga + caché de precios/velas (yfinance)
+  __init__.py                # create_app() + INSTALLED_APPS
+  core/                      # Lo compartido por todas las apps
+    market_data.py             # Descarga + caché de precios/velas (yfinance)
+    watchlists.py              # Registro de watchlists (Resumen, Gráficas, Informe)
+    email.py                   # Envío de emails vía Resend
+    navigation.py              # Entradas del sidebar de las páginas oscuras
+    charts.py                  # Paleta de las gráficas generadas en el servidor
+    views.py                   # Blueprint sin páginas: layout, sidebar, iconos, estáticos
+    api.py                     # /api/watchlists, /api/quote, /api/candles, /api/email/send...
+    templates/core/            # base.html (layout con sidebar), sidebar.html, icons.html
+    static/                    # css/style.css, js/app.js, js/vendor/lightweight-charts
+  moainvest/                 # Sitio principal (diseño rojo): "/", "/graficas/..." e "/informe"
+    views.py
+    commands.py                # flask build-css (Tailwind sin Node)
+    templates/moainvest/
+    static/                    # moainvest.css (compilado), moainvest.js, src/, logos
+  varianza/                  # Análisis de Varianza: "/analisis-varianza/"
+    views.py, api.py           # Página y /api/volatility-chart
     analysis.py                # Volatilidad mensual + histogramas (seaborn)
-    report.py                   # Informe HTML de cotizaciones para enviar por email
-    media.py                     # Imágenes optimizadas vía Cloudinary (f_auto,q_auto)
-    quant.py                    # quantstats: stats, Monte Carlo, plots, reports y earnings
-  controllers/            # CONTROLLER: blueprints de Flask
-    moainvest.py              # Sitio MOAINVEST: "/", "/graficas/..." e "/informe"
-    varianza.py                 # App "Análisis de Varianza" (placeholder)
-    quant_stats.py               # App "QUANT STATS" (quantstats, cualquier activo)
-    api.py                       # API JSON que consume el JavaScript
-  views/                   # VIEW: plantillas Jinja2
-    moainvest/                # Plantillas del sitio MOAINVEST (diseño rojo)
-    base.html                 # Layout con el sidebar (Varianza, Quant stats, Informes)
-    varianza.html               # Página en blanco de Análisis de Varianza
-    quant_fundamentales.html     # QUANT STATS: stats + Monte Carlo, plots, reports
-    quant_revision.html          # QUANT STATS: benchmark, períodos y earnings
-    partials/sidebar.html
-    partials/quant_asset_form.html  # Selector de activo y período de QUANT STATS
-  static/
-    moainvest/moainvest.css   # CSS de Tailwind compilado (fuente en moainvest/src/)
-    moainvest/moainvest.js    # Precios en vivo, sparklines, velas, informe y menú
-    css/style.css
-    js/app.js                 # Colapsar el sidebar de las páginas con base.html
-    js/vendor/lightweight-charts.standalone.production.js
-tests/                   # pytest (modelos + rutas, con datos simulados)
+    templates/varianza/, static/
+  quant_stats/               # QUANT STATS: "/quant-stats/..."
+    views.py, api.py           # Páginas y /api/quant/<ticker>/...
+    quant.py                   # quantstats: stats, Monte Carlo, plots, reports y earnings
+    templates/quant_stats/
+  informes/                  # Informes por email: "/informes/"
+    views.py, api.py           # Página y /api/report/..., /api/email/send-assets-report
+    commands.py                # flask cloudinary-upload
+    report.py                  # Informe HTML de cotizaciones
+    report_charts.py           # Gráfico por watchlist del informe
+    media.py                   # Imágenes optimizadas vía Cloudinary
+    templates/informes/        # index.html y emails/market_report.html
+    static/                    # js/, img/informes/, video/
+tests/                       # pytest, una carpeta por app (tests/<app>/...)
 ```
 
-- **Model**: `app/models/market_data.py` es el único lugar que habla con
-  `yfinance`; expone `Quote` (precio actual) y velas OHLC ya cacheadas.
-  `app/models/apps.py` registra las secciones de primer nivel del sidebar
-  y `app/models/watchlists.py` las watchlists del sitio MOAINVEST.
-- **View**: plantillas Jinja2 en `app/views` (sí, la carpeta se llama
-  `views` y no `templates`, configurado explícitamente en la app factory).
-- **Controller**: un blueprint por app (`moainvest`, `varianza`, `quant_stats`,
-  `informes`) más
-  `api`, que sirve JSON al frontend (para refrescar precios sin recargar
-  la página).
+- **Lógica (los "models" de Django)**: módulos de cada app sin Flask, por
+  ejemplo `core/market_data.py`, el único que habla con `yfinance`.
+- **Vistas**: `views.py` y `api.py` de cada app, con su `bp` (Blueprint).
+- **Plantillas**: `app/<app>/templates/<app>/...`; el nombre de la app en la
+  ruta evita choques entre apps (`render_template("varianza/index.html")`).
+- **Estáticos**: `app/<app>/static/`, con `url_for("<app>.static", filename=...)`.
 
 ## Cómo extenderla
 
 El sidebar tiene dos niveles:
 
-1. **Apps** (`app/models/apps.py`): las secciones de primer nivel, cada
-   una con su propio blueprint. Para añadir una nueva (por ejemplo
-   "Backtesting"):
+1. **Apps**: para añadir una nueva (por ejemplo "Backtesting"), crea el
+   paquete `app/backtesting/` con un `views.py` que defina su `bp`, y sus
+   `templates/backtesting/`; añade `"backtesting"` a `INSTALLED_APPS` en
+   `app/__init__.py` y su entrada en el sidebar (`app/core/navigation.py`):
 
    ```python
    App(slug="backtesting", name="Backtesting", icon="🧪", endpoint="backtesting.index", kind="blank"),
    ```
 
-   y crear `app/controllers/backtesting.py` con un blueprint que renderice
-   su propia plantilla, registrado en `app/__init__.py`. Con `kind="blank"`
-   no hace falta tocar el sidebar: solo aparece el enlace.
+   Con `kind="blank"` no hace falta tocar la plantilla del sidebar: solo
+   aparece el enlace.
 
-2. **Watchlists** (`app/models/watchlists.py`): las listas de tickers que
+2. **Watchlists** (`app/core/watchlists.py`): las listas de tickers que
    usan las Gráficas y el Informe de MOAINVEST. Para añadir una nueva (por
    ejemplo "Bancos"):
 
@@ -90,7 +97,7 @@ El sidebar tiene dos niveles:
    ),
    ```
 
-   No hace falta tocar plantillas, controladores ni JavaScript: la nueva
+   No hace falta tocar plantillas, vistas ni JavaScript: la nueva
    watchlist aparece automáticamente en Gráficas, con su propia ruta
    `/graficas/bancos` y su propio endpoint `/api/watchlist/bancos/quotes`,
    y en el Informe.
@@ -102,14 +109,14 @@ anualizada** (desviación estándar de los retornos diarios dentro de cada
 mes calendario, multiplicada por `sqrt(252)`) de uno o varios tickers y
 muestra, por cada uno, un histograma con la distribución de esas
 volatilidades a lo largo del período elegido. El histograma se genera en
-el servidor con **seaborn/matplotlib** (`app/models/analysis.py`) y se
+el servidor con **seaborn/matplotlib** (`app/varianza/analysis.py`) y se
 sirve como PNG desde `GET /api/volatility-chart?tickers=AAPL,MSFT&period=5y`.
 
 ### Informe de mercado por email
 
-`app/models/report.py` obtiene las cotizaciones de las watchlists, construye
+`app/informes/report.py` obtiene las cotizaciones de las watchlists, construye
 un informe HTML (resumen de subidas/bajadas, mayores movimientos y una tabla
-por watchlist) con la plantilla `app/views/emails/market_report.html` y lo
+por watchlist) con la plantilla `app/informes/templates/informes/emails/market_report.html` y lo
 envía vía Resend:
 
 ```python
@@ -132,14 +139,14 @@ watchlists, ver el informe con "Ver informe" y enviarlo con "Enviar por correo".
 Los fondos de la página de Informes llevan una imagen servida desde
 [Cloudinary](https://cloudinary.com) con `f_auto,q_auto` (AVIF/WebP/JPEG y
 calidad elegidos por Cloudinary para cada navegador) y un `srcset` de 640,
-1280 y 1920 px. La lógica vive en `app/models/media.py`.
+1280 y 1920 px. La lógica vive en `app/informes/media.py`.
 
 1. Copia tu URL de API desde la [consola de Cloudinary](https://console.cloudinary.com/settings/api-keys)
    y ponla en el `.env`: `CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>`.
 2. Sube las imágenes (una sola vez, o cada vez que cambies las de
-   `app/static/img/informes/`): `uv run flask --app run cloudinary-upload`.
+   `app/informes/static/img/informes/`): `uv run flask --app run cloudinary-upload`.
 
-Sin `CLOUDINARY_URL`, la página usa las copias locales de `app/static/img/informes/`.
+Sin `CLOUDINARY_URL`, la página usa las copias locales de `app/informes/static/img/informes/`.
 
 ### QUANT STATS
 
@@ -183,7 +190,7 @@ comprueba.
 
 La página de Informes usa iconos de línea (trazados de
 [Lucide](https://lucide.dev), licencia ISC) como SVG inline desde el macro
-`app/views/partials/icons.html`, sin CDN ni dependencias:
+`app/core/templates/core/icons.html`, sin CDN ni dependencias:
 
 ```jinja
 {% import "partials/icons.html" as icons %}
@@ -201,7 +208,7 @@ estén usan `list`).
 El nombre visible de la app (**MoaiInvest**) vive en un único sitio:
 `Config.SITE_NAME` en `config.py`. Un context processor lo inyecta en todas
 las plantillas como `site_name` (títulos de página y sidebar) y
-`app/models/report.py` lo usa en el asunto y la cabecera del informe por
+`app/informes/report.py` lo usa en el asunto y la cabecera del informe por
 email. Para renombrar la app basta con cambiar esa línea. El `name` de
 `pyproject.toml` (`market-dashboard`) y el prefijo de Cloudinary son
 identificadores técnicos y no se muestran al usuario.
@@ -220,12 +227,12 @@ Cualquier ruta inexistente muestra el 404 con este mismo diseño. Análisis de
 varianza, Quant stats e Informes siguen en sus rutas, con el layout de sidebar,
 y su enlace «Gráficas» lleva a `/graficas`.
 
-- Controlador `app/controllers/moainvest.py` y plantillas en `app/views/moainvest/`.
-- `app/static/moainvest/moainvest.js` (sin framework) refresca los precios
+- App `app/moainvest/`: `views.py` y plantillas en `templates/moainvest/`.
+- `app/moainvest/static/moainvest.js` (sin framework) refresca los precios
   cada 15 s y dibuja sparklines, el gráfico de velas y el informe, usando la
   API JSON `/api/...`.
 - El CSS es Tailwind v4, pero **sin Node**: el compilado
-  `app/static/moainvest/moainvest.css` se commitea, y para regenerarlo tras
+  `app/moainvest/static/moainvest.css` se commitea, y para regenerarlo tras
   cambiar clases en las plantillas o en el JS se usa el binario standalone de
   Tailwind que instala uv (dependencia de desarrollo `pytailwindcss`):
 

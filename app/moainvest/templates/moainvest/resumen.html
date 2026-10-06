@@ -1,0 +1,64 @@
+{% extends "moainvest/base.html" %}
+{% import "moainvest/_macros.html" as ui with context %}
+{% import "core/icons.html" as icons %}
+
+{% block content %}
+{% call ui.page_intro("Mercado en vivo · Yahoo Finance", lead="Índices, cripto y divisas de un vistazo. Los precios se actualizan cada 15 segundos.") %}
+  Resumen del <span class="accent">mercado</span>.
+{% endcall %}
+
+<div class="mx-auto w-full max-w-6xl px-5 sm:px-8 py-12 sm:py-16" data-watchlist-quotes="{{ watchlist.slug }}">
+  <p role="status" data-quotes-failed hidden class="mb-6 rounded-xl bg-brand-soft px-4 py-3 text-sm text-brand-deep">
+    No pudimos actualizar los precios. Se muestran los últimos valores disponibles.
+  </p>
+  <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for s in watchlist.symbols %}
+    <li data-reveal style="--i: {{ loop.index0 }}">
+      <a href="{{ chart_url(watchlist, s.ticker) }}" data-quote="{{ s.ticker }}"
+         class="group block h-full rounded-2xl border border-line bg-white p-6 transition-[border-color,box-shadow,transform] duration-500 ease-out-soft hover:-translate-y-1 hover:border-ink/20 hover:shadow-[0_24px_48px_-30px_rgba(23,23,23,.4)]">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="truncate text-lg font-semibold tracking-tight">{{ s.display_name }}</p>
+            <p class="font-mono text-xs tracking-[0.1em] text-muted">{{ s.ticker }}</p>
+          </div>
+          {{ icons.icon("arrow-up-right", extra_class="size-5 shrink-0 text-muted transition-[color,transform] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand") }}
+        </div>
+        <div class="mt-5 flex items-end justify-between gap-3">
+          <p class="font-mono text-2xl font-medium tabular-nums tracking-tight" aria-live="polite">
+            <span data-field="price"><span class="inline-block h-7 w-28 animate-pulse rounded bg-mist align-middle"></span></span><span data-field="currency" class="ml-1.5 text-xs text-muted"></span>
+          </p>
+          <span data-field="change-pill" class="inline-flex items-center rounded-full px-2.5 py-1 font-mono text-xs tabular-nums bg-mist text-muted">—</span>
+        </div>
+        <div class="mt-4" data-sparkline="{{ s.ticker }}">
+          <div class="h-16 animate-pulse rounded-lg bg-mist" aria-hidden="true"></div>
+        </div>
+        <p class="mt-2 text-xs text-muted">Último mes · ver gráfica</p>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  {% set shortcuts = [
+    ("moainvest.graficas", "candlestick-chart", "Gráficas", "Velas en vivo de cada activo, por watchlist y con rangos de 1 día a todo el histórico."),
+    ("moainvest.informe", "file-text", "Informe", "Elige tus watchlists, revisa el informe de activos y envíalo por correo."),
+  ] %}
+  <ul class="mt-16 grid gap-4 md:grid-cols-2">
+    {% for endpoint, icon, title, body in shortcuts %}
+    <li data-reveal style="--i: {{ loop.index0 }}">
+      <a href="{{ url_for(endpoint) }}" class="group flex h-full items-start gap-5 rounded-2xl border border-line bg-mist p-6 transition-colors hover:border-brand/40 sm:p-8">
+        <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-white text-brand transition-colors group-hover:bg-brand group-hover:text-white">
+          {{ icons.icon(icon, extra_class="size-5", stroke_width=1.6) }}
+        </span>
+        <span>
+          <span class="flex items-center gap-2 text-xl font-semibold tracking-tight">
+            {{ title }}
+            {{ icons.icon("arrow-right", extra_class="size-4 transition-transform group-hover:translate-x-0.5") }}
+          </span>
+          <span class="mt-1.5 block leading-relaxed text-muted">{{ body }}</span>
+        </span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
