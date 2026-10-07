@@ -240,6 +240,34 @@ y su enlace «Gráficas» lleva a `/graficas`.
   uv run flask --app run build-css          # o --watch mientras desarrollas
   ```
 
+### Graficador
+
+App `app/graficador/` (layout oscuro con sidebar) en `/app/graficador/`: el
+gráfico de **cualquier ticker de Yahoo Finance** (`?ticker=AAPL`, `^GSPC`,
+`BTC-USD`, `EURUSD=X`...; por defecto, el primer símbolo de la watchlist por
+defecto). Es la primera entrada del sidebar y sustituye al antiguo enlace
+«Gráficas» a `/graficas`.
+
+- Velas, línea o área en el pane principal y el **volumen** como histograma en
+  un pane propio (panes de lightweight-charts v5).
+- Rangos 1D, 5D, 1M, 6M, 1A, 5A y Todo (`CHART_RANGES` en
+  `app/graficador/views.py`, cada uno con su intervalo), buscador de ticker,
+  leyenda OHLC + volumen que sigue al crosshair y redimensionado con `autoSize`.
+- Un ticker con caracteres no válidos responde 400 con el mensaje de error; uno
+  válido sin datos en Yahoo muestra «No hay datos…» sobre el gráfico.
+- Los datos vienen de `GET /api/candles/<ticker>?range=&interval=` (`core`),
+  que ya devuelve `volume`; el JS está en `app/graficador/static/graficador.js`
+  y toma los colores de los tokens de `core/static/css/style.css`.
+
+**lightweight-charts**: vendorizada la **v5.2.1** (standalone production,
+descargada de `https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js`)
+en `app/core/static/js/vendor/`. Desde la v5 las series se crean con
+`chart.addSeries(LightweightCharts.CandlestickSeries, opciones, paneIndex)` en
+vez de `addCandlestickSeries(...)`, y los markers con
+`LightweightCharts.createSeriesMarkers(series, markers)` en vez de
+`series.setMarkers(...)`. Un test (`tests/graficador/test_routes.py`) comprueba
+que ningún JS propio usa la API de la v4.
+
 ## Puesta en marcha
 
 Requiere [uv](https://docs.astral.sh/uv/) y Python 3.12+.

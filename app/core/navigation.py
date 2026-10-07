@@ -45,7 +45,7 @@ class App:
 
 
 APPS: tuple[App, ...] = (
-    App(slug="graficas", name="Gráficas", icon="📈", endpoint="moainvest.graficas", kind="blank"),
+    App(slug="graficador", name="Graficador", icon="📈", endpoint="graficador.index", kind="blank"),
     App(slug="analisis-varianza", name="Análisis de varianza", icon="🧮", endpoint="varianza.index", kind="blank"),
     App(
         slug="quant-stats",

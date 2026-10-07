@@ -85,10 +85,11 @@ def test_informe_lists_watchlists_and_api_urls(client):
 
 
 @pytest.mark.parametrize("path", ["/analisis-varianza/", "/informes/"])
-def test_other_sections_link_to_red_charts_from_sidebar(client, path):
+def test_other_sections_link_to_graficador_from_sidebar(client, path):
+    # La primera entrada del sidebar oscuro es ahora el Graficador.
     response = client.get(path)
     assert response.status_code == 200
-    assert 'href="/graficas"' in response.get_data(as_text=True)
+    assert 'href="/app/graficador/"' in response.get_data(as_text=True)
 
 
 def test_old_chart_urls_are_gone(client):
