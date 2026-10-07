@@ -3,14 +3,18 @@ import re
 from pathlib import Path
 
 import pytest
+from flask import url_for
 
+from app.core.navigation import default_app
 from app.core.watchlists import WATCHLISTS, get_watchlist
 
 STATIC = Path(__file__).resolve().parents[2] / "app" / "moainvest" / "static"
 
 
 def test_resumen_lists_overview_symbols_with_chart_links(client):
-    page = client.get("/").get_data(as_text=True)
+    response = client.get("/")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
     overview = get_watchlist("overview")
     assert "<title>MOAINVEST | Resumen, gráficas e informes de mercado</title>" in page
     assert 'Resumen del <span class="accent">mercado</span>.' in page
@@ -21,11 +25,52 @@ def test_resumen_lists_overview_symbols_with_chart_links(client):
     assert 'href="/graficas/overview/%5EGSPC"' in page
 
 
-def test_layout_has_navigation_and_assets(client):
-    page = client.get("/informe").get_data(as_text=True)
-    for href in ("/", "/graficas", "/informe"):
+def _nav_links(page: str, label: str) -> list[tuple[str, str]]:
+    """(href, texto) de los enlaces del ``<nav aria-label="...">`` indicado."""
+    nav = re.search(rf'<nav aria-label="{label}".*?</nav>', page, re.S)
+    assert nav, label
+    return re.findall(r'<a href="([^"]+)"[^>]*>([^<]+)</a>', nav.group(0))
+
+
+@pytest.mark.parametrize("label", ["Menú principal", "Menú principal móvil", "Navegación del pie de página"])
+def test_navbar_has_only_inicio_and_app(client, label):
+    page = client.get("/").get_data(as_text=True)
+    assert _nav_links(page, label) == [("/", "Inicio"), ("/app/", "App")]
+
+
+def test_navbar_marks_inicio_as_current_on_home(client):
+    page = client.get("/").get_data(as_text=True)
+    assert '<a href="/" aria-current="page"' in page
+    assert '<a href="/app/" aria-current="page"' not in page
+
+
+def test_header_and_mobile_button_open_app(client):
+    page = client.get("/").get_data(as_text=True)
+    assert page.count(">Abrir app</a>") == 2
+    assert "Generar informe" not in page
+    assert len(re.findall(r'<a href="/app/" class="[^"]*">Abrir app</a>', page)) == 2
+
+
+@pytest.mark.parametrize("path", ["/app/", "/app"])
+def test_app_home_redirects_to_default_app(app, client, path):
+    with app.test_request_context():
+        target = url_for(default_app().endpoint)
+    response = client.get(path)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(target)
+
+
+def test_home_content_links_still_work(client):
+    # Gráficas e Informe salen del navbar, pero los atajos del Resumen siguen funcionando.
+    page = client.get("/").get_data(as_text=True)
+    for href in ("/graficas", "/informe"):
         assert f'href="{href}"' in page
-    assert '<a href="/informe" aria-current="page"' in page
+    assert client.get("/graficas").status_code == 302
+    assert client.get("/informe").status_code == 200
+
+
+def test_layout_has_assets(client):
+    page = client.get("/informe").get_data(as_text=True)
     assert "/static/moainvest/moainvest.css" in page
     assert "/static/moainvest/moainvest.js" in page
     assert 'id="menu-movil" hidden' in page

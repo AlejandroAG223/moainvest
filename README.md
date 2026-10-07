@@ -217,11 +217,12 @@ identificadores técnicos y no se muestran al usuario.
 
 El sitio principal, con el diseño rojo de MOAINVEST, se sirve en la raíz:
 
-| Ruta | Contenido |
-|---|---|
-| `/` | **Resumen**: watchlist «Resumen» con precios en vivo y la línea del último mes |
-| `/graficas/<watchlist>/<ticker>` | **Gráficas**: velas, rangos de 1D a Todo y precios del resto de la watchlist (`/graficas` y `/graficas/<watchlist>` redirigen al primer símbolo) |
-| `/informe` | **Informe**: elegir watchlists, vista previa y envío por correo |
+| Ruta | En el navbar | Contenido |
+|---|---|---|
+| `/` | **Inicio** | **Resumen**: watchlist «Resumen» con precios en vivo y la línea del último mes |
+| `/app/` | **App** (y botón «Abrir app») | Redirige a la primera app del sidebar (`default_app()`) |
+| `/graficas/<watchlist>/<ticker>` | — (atajo del Resumen) | **Gráficas**: velas, rangos de 1D a Todo y precios del resto de la watchlist (`/graficas` y `/graficas/<watchlist>` redirigen al primer símbolo) |
+| `/informe` | — (atajo del Resumen) | **Informe**: elegir watchlists, vista previa y envío por correo |
 
 Cualquier ruta inexistente muestra el 404 con este mismo diseño. Análisis de
 varianza, Quant stats e Informes siguen en sus rutas, con el layout de sidebar,
@@ -239,6 +240,21 @@ y su enlace «Gráficas» lleva a `/graficas`.
   ```bash
   uv run flask --app run build-css          # o --watch mientras desarrollas
   ```
+
+### Navbar
+
+El navbar del sitio rojo (cabecera, menú móvil y pie) sale de `MAIN_NAV` en
+`app/moainvest/views.py` y solo tiene dos enlaces: **Inicio** (`/`) y **App**
+(`/app/`). El botón de la cabecera y del menú móvil, «Abrir app», también
+apunta a `/app/`.
+
+`/app/` (endpoint `moainvest.app_home`, también responde en `/app`) no tiene
+página propia: redirige (302) a `url_for(default_app().endpoint)` de
+`app/core/navigation.py`, así que siempre lleva a la primera app de `APPS`
+aunque cambie el orden del sidebar. Para añadir otro enlace al navbar, añade
+una tupla `(endpoint, etiqueta)` a `MAIN_NAV`; `nav_link` (en
+`moainvest/_macros.html`) lo marca como activo cuando la ruta actual empieza
+por su URL.
 
 ## Puesta en marcha
 
