@@ -1,18 +1,33 @@
-<aside class="sidebar" id="sidebar">
+{% import "core/icons.html" as icons %}
+{#- Icono de línea (core/icons.html) de cada app y subsección, por slug. Las
+    que no estén aquí siguen usando el emoji de ``App.icon``. -#}
+{% set nav_icons = {
+  "graficador": "candlestick-chart",
+  "informes": "file-text",
+  "analisis-varianza": "sigma",
+  "quant-stats": "flask-conical",
+  "fundamentales": "chart-column",
+  "revision": "search",
+} %}
+{% macro nav_icon(entry) -%}
+<span class="sidebar__icon">
+  {%- if entry.slug in nav_icons %}{{ icons.icon(nav_icons[entry.slug]) }}{% else %}{{ entry.icon }}{% endif -%}
+</span>
+{%- endmacro %}
+<aside class="sidebar" id="sidebar" aria-label="Apps">
   <div class="sidebar__brand">
-    {#- La marca vuelve a "Inicio", el sitio rojo. -#}
-    <a class="sidebar__home" href="{{ url_for('moainvest.resumen') }}" title="Inicio">
-      <span class="sidebar__logo">📈</span>
-      <span class="sidebar__title">{{ site_name }}</span>
-    </a>
-    <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Colapsar sidebar" type="button">«</button>
+    <span class="sidebar__title">Apps</span>
+    <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Colapsar sidebar" aria-expanded="true" type="button">
+      {{ icons.icon("panel-left") }}
+    </button>
   </div>
 
   <nav class="sidebar__nav">
     {% for app in apps %}
     <div class="sidebar__app {% if active_app and active_app.slug == app.slug %}is-active{% endif %}">
-      <a class="sidebar__app-header" href="{{ url_for(app.endpoint) }}">
-        <span class="sidebar__icon">{{ app.icon }}</span>
+      <a class="sidebar__app-header" href="{{ url_for(app.endpoint) }}" title="{{ app.name }}"
+         {%- if active_app and active_app.slug == app.slug %} aria-current="page"{% endif %}>
+        {{ nav_icon(app) }}
         <span class="sidebar__app-name">{{ app.name }}</span>
       </a>
 
@@ -20,8 +35,8 @@
       <div class="sidebar__watchlists">
         {% for section in app.sections %}
         <div class="sidebar__section {% if active_section == section.slug %}is-active{% endif %}">
-          <a class="sidebar__section-header" href="{{ url_for(section.endpoint, **(section_args or {})) }}">
-            <span class="sidebar__icon">{{ section.icon }}</span>
+          <a class="sidebar__section-header" href="{{ url_for(section.endpoint, **(section_args or {})) }}" title="{{ section.name }}">
+            {{ nav_icon(section) }}
             <span class="sidebar__section-name">{{ section.name }}</span>
           </a>
         </div>
@@ -31,4 +46,6 @@
     </div>
     {% endfor %}
   </nav>
+
+  <p class="sidebar__foot">Datos de Yahoo Finance</p>
 </aside>
