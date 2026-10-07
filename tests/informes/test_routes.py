@@ -84,7 +84,7 @@ def test_api_send_assets_report_reports_provider_errors(client, monkeypatch):
 
 
 def test_informes_page_has_preview_and_send_buttons(client):
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     assert response.status_code == 200
     assert b'id="preview-btn"' in response.data
     assert b'id="send-btn"' in response.data
@@ -93,7 +93,7 @@ def test_informes_page_has_preview_and_send_buttons(client):
 
 
 def test_informes_page_has_background_fx_layers(client):
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     for scene in ("charts", "stats", "sports"):
         # Video en bucle si existe static/video/informes-<escena>.mp4; si no, canvas.
         assert f"fx-layer--{scene}".encode() in response.data
@@ -108,7 +108,7 @@ def test_informes_page_uses_local_images_without_cloudinary(client, monkeypatch)
     from config import Config
 
     monkeypatch.setattr(Config, "CLOUDINARY_URL", "")
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     assert b"/static/img/informes/charts.jpg" in response.data
     assert b"res.cloudinary.com" not in response.data
 
@@ -117,14 +117,14 @@ def test_informes_page_uses_cloudinary_images_when_configured(client, monkeypatc
     from config import Config
 
     monkeypatch.setattr(Config, "CLOUDINARY_URL", "cloudinary://123456:secreto@demo")
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     assert b"https://res.cloudinary.com/demo/image/upload/" in response.data
     assert b"f_auto" in response.data and b"q_auto" in response.data
     assert b"srcset=" in response.data
 
 
 def test_informes_page_uses_inline_svg_icons_instead_of_emojis(client):
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     html = response.data.decode()
     content = html[html.index('id="informes-page"'):]
     # Iconos de línea inline que heredan el color y son decorativos.

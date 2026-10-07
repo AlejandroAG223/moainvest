@@ -129,7 +129,7 @@ def test_informe_lists_watchlists_and_api_urls(client):
         assert f'name="watchlists" value="{w.slug}" checked' in page
 
 
-@pytest.mark.parametrize("path", ["/analisis-varianza/", "/informes/"])
+@pytest.mark.parametrize("path", ["/app/analisis-varianza/", "/app/informes/"])
 def test_other_sections_link_to_red_charts_from_sidebar(client, path):
     response = client.get(path)
     assert response.status_code == 200

@@ -12,7 +12,7 @@ from app.core.watchlists import WATCHLISTS
 bp = Blueprint(
     "informes",
     __name__,
-    url_prefix="/informes",
+    url_prefix="/app/informes",
     template_folder="templates",
     static_folder="static",
 )
