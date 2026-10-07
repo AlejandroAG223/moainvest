@@ -308,6 +308,28 @@ vez de `addCandlestickSeries(...)`, y los markers con
 `series.setMarkers(...)`. Un test (`tests/graficador/test_routes.py`) comprueba
 que ningún JS propio usa la API de la v4.
 
+### Estética de Informes y Análisis de varianza
+
+`/app/informes/` y `/app/analisis-varianza/` siguen la marca del sitio rojo
+(blancos, rojos y negros, Geist): cabecera con eyebrow mono y título grande,
+tarjetas blancas con borde `line` y botones pill rojos. Sus estilos están solo
+en las secciones "Análisis de Varianza" e "Informes" de
+`app/core/static/css/style.css`, sobre los tokens del `:root`.
+
+- Las clases base `.varianza-page`, `.varianza-form*`, `.varianza-table*`,
+  `.varianza-status` y `.volatility-*` también las usa Quant stats: conserva
+  su estructura. Lo propio de cada página lleva su prefijo (`.varianza-hero`,
+  `.varianza-chip`, `.informes-card`, `.informes-btn`...).
+- El campo de tickers de la volatilidad crea chips con Intro, coma o espacio
+  (`varianza.js`); el máximo sale de `MAX_VOLATILITY_TICKERS` de `api.py`.
+- Los fondos de vídeo/imagen de Informes se pasan a blanco y negro y llevan
+  un overlay negro→rojo; el canvas de respaldo usa los mismos colores.
+- Las gráficas del servidor (`varianza/analysis.py` e
+  `informes/report_charts.py`) usan `PALETTE`, `MPL_RC`, `UP` y `DOWN` de
+  `app/core/charts.py` dentro de `rc_context`, sin cambiar el tema global de
+  matplotlib. El email (`informes/emails/market_report.html`) usa los mismos
+  colores con estilos en línea y tablas.
+
 ## Puesta en marcha
 
 Requiere [uv](https://docs.astral.sh/uv/) y Python 3.12+.

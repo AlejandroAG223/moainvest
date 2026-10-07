@@ -5,9 +5,21 @@
 def test_varianza_page_is_reachable(client):
     response = client.get("/app/analisis-varianza/")
     assert response.status_code == 200
-    assert "Análisis de Varianza".encode() in response.data
+    assert "Análisis de varianza · MoaiInvest".encode() in response.data
     assert b'id="ticker-input"' in response.data
     assert b'id="download-csv-btn"' in response.data
+
+
+def test_varianza_page_has_brand_header_and_ticker_chips(client):
+    html = client.get("/app/analisis-varianza/").data
+    assert b'class="varianza-hero"' in html
+    assert b'class="varianza-eyebrow"' in html
+    assert b'class="varianza-accent"' in html
+    # Campo de tickers con chips, límite de la API y sugerencias.
+    assert b'id="tickers-chips"' in html
+    assert b'id="tickers-input"' in html
+    assert b'data-max-tickers="6"' in html
+    assert b'data-ticker="AAPL"' in html
 
 
 def test_api_volatility_chart_requires_tickers(client):
