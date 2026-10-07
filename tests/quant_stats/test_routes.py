@@ -55,14 +55,14 @@ def test_fundamentales_runs_montecarlo_with_custom_thresholds(client, fake_uec):
 
 def test_fundamentales_works_for_any_asset(client, fake_uec):
     html = client.get("/app/quant-stats/fundamentales?ticker=ccj").data.decode()
-    assert "Gráficas y fundamentales estadísticos · CCJ" in html
+    assert '<span class="qs-hero__ticker">CCJ</span>' in html
     assert "Nombre CCJ" in html  # no está en las watchlists: nombre de Yahoo Finance
     assert "/api/quant/CCJ/plot/snapshot.png" in html
 
 
 def test_invalid_ticker_falls_back_to_default(client, fake_uec):
     html = client.get("/app/quant-stats/fundamentales?ticker=<script>").data.decode()
-    assert "· UEC" in html
+    assert '<span class="qs-hero__ticker">UEC</span>' in html
 
 
 def test_fundamentales_without_data(client, monkeypatch):
