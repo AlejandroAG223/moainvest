@@ -385,6 +385,29 @@ Las páginas de `/app/...` usan el mismo lenguaje visual que el sitio rojo
   </div>
   ```
 
+### Estética de Quant stats
+
+Las páginas de `app/quant_stats/` (`/app/quant-stats/fundamentales`,
+`/revision` y el tearsheet) siguen la marca MOAINVEST del sitio rojo:
+
+- Plantillas: `quant_stats/_base.html` extiende `core/base.html`, carga Geist y
+  pinta la cabecera (eyebrow mono, ticker y nombre grandes); las páginas
+  rellenan los bloques `hero_eyebrow`, `hero_lead`, `hero_extra` y `page`.
+  Estilos propios con prefijo `qs-` (pestañas pill, tarjetas de métricas,
+  tablas, formularios y botones pill rojos) en las secciones «Análisis UEC» y
+  «QUANT STATS» de `app/core/static/css/style.css`; no usan las clases
+  `varianza-*`.
+- Gráficas del servidor (`quant.py`): todo se dibuja dentro de
+  `_brand_theme()`, que bajo `_QS_PLOT_LOCK` aplica `MPL_RC` de
+  `app/core/charts.py` con `matplotlib.rc_context`, cambia la paleta de
+  quantstats por `QS_COLORS` (benchmark en gris, activo en rojo de marca) y lo
+  restaura al salir. `_brand_figure()` sustituye los colores fijos de
+  quantstats (`_QS_FIXED_COLORS`) y pasa los heatmaps a `HEATMAP_CMAP`
+  (rojo ↔ blanco ↔ verde, centrado en 0).
+- Tearsheet: `brand_tearsheet()` inyecta `TEARSHEET_CSS` (Geist, acentos
+  rojos, tablas con filas separadas) antes de `</head>` del HTML de
+  `qs.reports.html`; sus gráficas SVG salen ya con el tema de marca.
+
 ## Puesta en marcha
 
 Requiere [uv](https://docs.astral.sh/uv/) y Python 3.12+.
