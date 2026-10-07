@@ -99,3 +99,41 @@ def test_vendored_lightweight_charts_is_v5_and_js_uses_v5_api():
         if "vendor" in js.parts:
             continue
         assert not v4_calls.search(js.read_text(encoding="utf-8")), js
+
+
+def test_page_has_brand_header(client):
+    page = client.get("/app/graficador/?ticker=%5EGSPC").data
+    # Eyebrow con el mercado (el JS le antepone la watchlist), nombre, precio y pill.
+    assert b'id="graficador-eyebrow"' in page
+    assert "Índice".encode() in page
+    assert b'data-watchlists-url="/api/watchlists"' in page
+    for element_id in ("graficador-name", "graficador-symbol", "graficador-price", "graficador-change"):
+        assert f'id="{element_id}"'.encode() in page
+    # Rangos en rojo de marca y tipo de serie en negro.
+    assert b'class="graficador__group graficador__group--ink"' in page
+    # Estados de carga, error y "sin datos" en una tarjeta sobre el gráfico.
+    assert b'id="graficador-overlay" hidden' in page
+    assert b'id="graficador-status" role="status"' in page
+
+
+def test_invalid_ticker_keeps_search_form(client):
+    response = client.get("/app/graficador/", query_string={"ticker": "AAPL MSFT"})
+    assert b'id="graficador-search"' in response.data
+    assert b'id="graficador-quote"' not in response.data
+    assert b'id="graficador-ranges"' not in response.data
+
+
+def test_js_fallbacks_use_brand_colors_not_old_dark_theme():
+    js = (ROOT / "app/graficador/static/graficador.js").read_text(encoding="utf-8").lower()
+    for old in ("#131a24", "#2962ff", "#26a69a", "#232c3a", "#7c8a9e", "#ef5350"):
+        assert old not in js, old
+    for brand in ("#ffffff", "#e6e4df", "#6b6b6b", "#171717", "#c8102e", "#fbeef0", "#0f8a5f"):
+        assert brand in js, brand
+    assert "geist mono" in js
+
+
+def test_css_uses_brand_tokens():
+    css = (ROOT / "app/graficador/static/graficador.css").read_text(encoding="utf-8")
+    for token in ("var(--brand)", "var(--ink)", "var(--line)", "var(--paper)", "var(--radius-pill)", "var(--font-mono)"):
+        assert token in css, token
+    assert "rgba(19, 26, 36" not in css

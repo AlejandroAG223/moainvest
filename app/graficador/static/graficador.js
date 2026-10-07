@@ -5,8 +5,10 @@
  * - Pane 0: la serie principal (velas, línea o área, según el selector).
  * - Pane 1: histograma de volumen.
  * Los datos vienen de /api/candles/<ticker>?range=&interval= (core) y la
- * cabecera de /api/quote/<ticker>. Los colores se leen de los tokens CSS de
- * core/static/css/style.css para que el gráfico siga el tema oscuro.
+ * cabecera de /api/quote/<ticker> y la watchlist del eyebrow de /api/watchlists.
+ * Los colores se leen de los tokens de marca de core/static/css/style.css
+ * (tema claro MOAINVEST, como el gráfico rojo de moainvest.js); los fallbacks
+ * son esos mismos valores por si la hoja no ha cargado.
  */
 (function () {
   "use strict";
@@ -20,10 +22,15 @@
   const candlesUrl = apiUrl(root.dataset.candlesUrl);
   const quoteUrl = apiUrl(root.dataset.quoteUrl);
 
+  const overlayEl = document.getElementById("graficador-overlay");
   const statusEl = document.getElementById("graficador-status");
   const legendEl = document.getElementById("graficador-legend");
-  const quoteEl = document.getElementById("graficador-quote");
   const nameEl = document.getElementById("graficador-name");
+  const symbolEl = document.getElementById("graficador-symbol");
+  const eyebrowEl = document.getElementById("graficador-eyebrow");
+  const priceEl = document.getElementById("graficador-price");
+  const currencyEl = document.getElementById("graficador-currency");
+  const changeEl = document.getElementById("graficador-change");
   const rangeButtons = Array.from(root.querySelectorAll("[data-range]"));
   const typeButtons = Array.from(root.querySelectorAll("[data-series-type]"));
 
@@ -31,12 +38,15 @@
   const css = getComputedStyle(document.documentElement);
   const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
   const THEME = {
-    bg: token("--bg-panel", "#131a24"),
-    border: token("--border", "#232c3a"),
-    text: token("--text-muted", "#7c8a9e"),
-    accent: token("--accent", "#2962ff"),
-    up: token("--up", "#26a69a"),
-    down: token("--down", "#ef5350"),
+    bg: token("--paper", "#ffffff"),
+    line: token("--line", "#e6e4df"),
+    text: token("--muted", "#6b6b6b"),
+    ink: token("--ink", "#171717"),
+    brand: token("--brand", "#c8102e"),
+    brandSoft: token("--brand-soft", "#fbeef0"),
+    up: token("--up", "#0f8a5f"),
+    down: token("--down", "#c8102e"),
+    font: token("--font-mono", '"Geist Mono", ui-monospace, monospace'),
   };
 
   function withAlpha(hex, alpha) {
@@ -79,13 +89,19 @@
     layout: {
       background: { type: LC.ColorType.Solid, color: THEME.bg },
       textColor: THEME.text,
-      fontFamily: getComputedStyle(document.body).fontFamily,
-      panes: { separatorColor: THEME.border, separatorHoverColor: withAlpha(THEME.accent, 0.2), enableResize: true },
+      // Geist Mono en ejes y etiquetas, como el gráfico rojo: cifras en mono.
+      fontFamily: THEME.font,
+      fontSize: 11,
+      panes: { separatorColor: THEME.line, separatorHoverColor: withAlpha(THEME.brand, 0.12), enableResize: true },
     },
-    grid: { vertLines: { color: withAlpha(THEME.border, 0.6) }, horzLines: { color: withAlpha(THEME.border, 0.6) } },
-    rightPriceScale: { borderColor: THEME.border },
-    timeScale: { borderColor: THEME.border, timeVisible: true, secondsVisible: false },
-    crosshair: { mode: LC.CrosshairMode.Normal },
+    grid: { vertLines: { color: withAlpha(THEME.line, 0.55) }, horzLines: { color: withAlpha(THEME.line, 0.55) } },
+    rightPriceScale: { borderColor: THEME.line },
+    timeScale: { borderColor: THEME.line, timeVisible: true, secondsVisible: false },
+    crosshair: {
+      mode: LC.CrosshairMode.Normal,
+      vertLine: { color: withAlpha(THEME.ink, 0.45), labelBackgroundColor: THEME.ink },
+      horzLine: { color: withAlpha(THEME.ink, 0.45), labelBackgroundColor: THEME.ink },
+    },
     localization: { locale: "es-ES" },
   });
 
@@ -96,11 +112,12 @@
         { upColor: THEME.up, downColor: THEME.down, borderVisible: false, wickUpColor: THEME.up, wickDownColor: THEME.down },
         0,
       ),
-    line: () => chart.addSeries(LC.LineSeries, { color: THEME.accent, lineWidth: 2 }, 0),
+    line: () => chart.addSeries(LC.LineSeries, { color: THEME.brand, lineWidth: 2 }, 0),
+    // Degradado del rojo de marca al brand-soft, casi transparente abajo.
     area: () =>
       chart.addSeries(
         LC.AreaSeries,
-        { lineColor: THEME.accent, topColor: withAlpha(THEME.accent, 0.4), bottomColor: withAlpha(THEME.accent, 0.02), lineWidth: 2 },
+        { lineColor: THEME.brand, topColor: withAlpha(THEME.brand, 0.22), bottomColor: withAlpha(THEME.brandSoft, 0.1), lineWidth: 2 },
         0,
       ),
   };
@@ -128,7 +145,7 @@
     return candles.map((c) => ({
       time: c.time,
       value: c.volume || 0,
-      color: withAlpha(c.close >= c.open ? THEME.up : THEME.down, 0.5),
+      color: withAlpha(c.close >= c.open ? THEME.up : THEME.down, 0.3),
     }));
   }
 
@@ -151,7 +168,7 @@
     const tone = candle.close >= candle.open ? "is-up" : "is-down";
     const item = (label, value) => '<span class="' + tone + '">' + label + " <b>" + value + "</b></span>";
     legendEl.innerHTML =
-      "<span>" + escapeHtml(ticker) + " · " + fmtTime(candle.time) + "</span>" +
+      '<span class="graficador__legend-time">' + escapeHtml(ticker) + " · " + fmtTime(candle.time) + "</span>" +
       item("O", fmtPrice(candle.open)) +
       item("H", fmtPrice(candle.high)) +
       item("L", fmtPrice(candle.low)) +
@@ -165,10 +182,12 @@
   });
 
   // ───────────────────────── Estados ─────────────────────────
-  function showStatus(text, isError) {
-    statusEl.hidden = !text;
+  // Estado sobre el gráfico (tarjeta blanca): "loading", "error" o "empty".
+  function showStatus(text, state) {
+    overlayEl.hidden = !text;
     statusEl.textContent = text || "";
-    statusEl.classList.toggle("graficador__status--error", Boolean(isError));
+    statusEl.classList.toggle("graficador__status--loading", state === "loading");
+    statusEl.classList.toggle("graficador__status--error", state === "error");
   }
 
   function getJSON(url) {
@@ -185,7 +204,7 @@
   function load(button) {
     const id = ++request;
     intraday = !/^(1d|1wk|1mo)$/.test(button.dataset.interval);
-    showStatus("Cargando datos de Yahoo Finance…");
+    showStatus("Cargando datos de Yahoo Finance…", "loading");
     getJSON(candlesUrl + "?range=" + button.dataset.range + "&interval=" + button.dataset.interval)
       .then((data) => {
         if (id !== request) return;
@@ -197,10 +216,10 @@
         renderLegend(candles[candles.length - 1]);
         showStatus(
           candles.length ? "" : "No hay datos de «" + ticker + "» en Yahoo Finance para este rango. Revisa el ticker.",
-          !candles.length,
+          "empty",
         );
       })
-      .catch(() => id === request && showStatus("No pudimos cargar el gráfico. Inténtalo de nuevo.", true));
+      .catch(() => id === request && showStatus("No pudimos cargar el gráfico. Inténtalo de nuevo.", "error"));
   }
 
   function press(buttons, active) {
@@ -222,18 +241,34 @@
 
   load(rangeButtons.find((b) => b.getAttribute("aria-pressed") === "true") || rangeButtons[0]);
 
+  // Geist Mono llega de Google Fonts: al cargar, se vuelve a pintar el canvas con ella.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => chart.applyOptions({ layout: { fontFamily: THEME.font } }));
+  }
+
   // ───────────────────────── Cabecera (precio actual) ─────────────────────────
   getJSON(quoteUrl)
     .then((q) => {
-      if (q.name && q.name !== ticker) nameEl.textContent = q.name;
+      if (q.name && q.name !== ticker) {
+        nameEl.textContent = q.name;
+        symbolEl.hidden = false;
+      }
       if (q.price === null || q.price === undefined) return;
-      const tone = (q.change || 0) >= 0 ? "is-up" : "is-down";
-      const sign = (q.change || 0) >= 0 ? "+" : "";
-      const change =
-        q.change === null
-          ? ""
-          : ' <span class="' + tone + '">' + sign + fmtPrice(q.change) + " (" + sign + q.change_percent.toFixed(2) + "%)</span>";
-      quoteEl.innerHTML = "<strong>" + fmtPrice(q.price) + "</strong> " + escapeHtml(q.currency || "") + change;
+      priceEl.textContent = fmtPrice(q.price);
+      currencyEl.textContent = q.currency || "";
+      if (q.change === null || q.change === undefined) return;
+      const sign = q.change >= 0 ? "+" : "";
+      changeEl.dataset.tone = q.change >= 0 ? "up" : "down";
+      changeEl.textContent =
+        sign + fmtPrice(q.change) + (q.change_percent === null ? "" : " (" + sign + fmtNumber(q.change_percent, 2) + " %)");
+    })
+    .catch(() => {});
+
+  // ───────────────────────── Eyebrow (watchlist · mercado) ─────────────────────────
+  getJSON(root.dataset.watchlistsUrl)
+    .then((watchlists) => {
+      const list = watchlists.find((w) => w.symbols.some((s) => s.ticker === ticker));
+      if (list) eyebrowEl.textContent = list.name + " · " + root.dataset.market;
     })
     .catch(() => {});
 })();
