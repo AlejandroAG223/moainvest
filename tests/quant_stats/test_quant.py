@@ -200,3 +200,145 @@ def test_compare_stats_puts_asset_and_benchmark_side_by_side(monkeypatch):
 def test_absolute_plots_exclude_benchmark_only_plots():
     assert all(not p.requires_benchmark for p in quant.ABSOLUTE_PLOTS)
     assert "rolling-beta" in {p.slug for p in quant.BENCHMARK_PLOTS}
+
+
+# --------------------------------------------------------------------------
+# Tema de marca MOAINVEST en las gráficas (app.core.charts)
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def captured_figures(monkeypatch):
+    """Guarda las figuras que se convierten a PNG para inspeccionar sus colores."""
+    figures = []
+    original = quant._to_png
+
+    def capture(fig, *args, **kwargs):
+        figures.append(fig)
+        return original(fig, *args, **kwargs)
+
+    monkeypatch.setattr(quant, "_to_png", capture)
+    return figures
+
+
+@pytest.fixture()
+def market_with_benchmark(monkeypatch):
+    # Datos distintos para el benchmark (quantstats cachea por contenido).
+    monkeypatch.setattr(
+        quant.market_data, "get_candles", lambda ticker, **k: _fake_candles(400 if ticker == "SPY" else 420)
+    )
+    monkeypatch.setattr(quant.market_data, "get_earnings", lambda *a, **k: _fake_earnings())
+
+
+def _hex(color) -> str:
+    from matplotlib.colors import to_hex
+
+    return to_hex(color)
+
+
+def _line_colors(fig) -> set[str]:
+    return {_hex(line.get_color()) for ax in fig.axes for line in ax.get_lines()}
+
+
+@pytest.mark.parametrize(
+    "render",
+    [
+        lambda: quant.render_qs_plot("UEC", "2y", "returns", benchmark="SPY"),
+        lambda: quant.render_qs_plot("UEC", "2y", "snapshot"),
+        lambda: quant.render_qs_plot("UEC", "2y", "drawdowns-periods"),
+        lambda: quant.render_montecarlo_chart("UEC", "2y", sims=250),
+        lambda: quant.render_drawdown_chart("UEC"),
+        lambda: quant.render_monthly_heatmap("UEC"),
+        lambda: quant.render_earnings_chart("UEC"),
+    ],
+)
+def test_charts_use_the_light_brand_theme(market_with_benchmark, captured_figures, render):
+    from app.core.charts import PAPER
+
+    render()
+    fig = captured_figures[-1]
+    assert _hex(fig.get_facecolor()) == PAPER
+    assert all(_hex(ax.get_facecolor()) == PAPER for ax in fig.axes)
+    # Ninguna línea con los colores propios de quantstats (azul, amarillo, rojo puro).
+    quantstats_colors = {"#fedd78", "#348dc1", "#ba516b", "#4fa487", "#003366", "#ff0000"}
+    assert not _line_colors(fig) & quantstats_colors
+
+
+def test_benchmark_plot_paints_asset_in_brand_red_and_benchmark_in_grey(market_with_benchmark, captured_figures):
+    from app.core.charts import BRAND, MUTED
+
+    quant.render_qs_plot("UEC", "2y", "returns", benchmark="SPY")
+    # quantstats dibuja primero el benchmark y después el activo (las etiquetas
+    # dependen de su caché interna, así que se comprueba el orden).
+    benchmark, asset = [_hex(line.get_color()) for line in captured_figures[-1].axes[0].get_lines()][:2]
+    assert benchmark == MUTED
+    assert asset == BRAND
+
+
+def test_montecarlo_replaces_quantstats_fixed_colors(fake_market, captured_figures):
+    from app.core.charts import INK, UP
+
+    quant.render_montecarlo_chart("FAKE", "2y", sims=250)
+    lines = {line.get_label(): _hex(line.get_color()) for line in captured_figures[-1].axes[0].get_lines()}
+    assert lines["Original"] == INK
+    assert lines["Goal (50%)"] == UP
+
+
+@pytest.mark.parametrize(
+    "render",
+    [
+        lambda: quant.render_qs_plot("UEC", "2y", "monthly-heatmap"),
+        lambda: quant.render_monthly_heatmap("UEC"),
+    ],
+)
+def test_monthly_heatmaps_use_the_brand_diverging_map(fake_market, captured_figures, render):
+    render()
+    meshes = [c for ax in captured_figures[-1].axes if ax.texts for c in ax.collections]
+    assert meshes and all(mesh.cmap is quant.HEATMAP_CMAP for mesh in meshes)
+
+
+def test_brand_theme_restores_global_state(market_with_benchmark):
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    facecolor = matplotlib.rcParams["axes.facecolor"]
+    core_colors = list(quant._qs_core._FLATUI_COLORS)
+    wrapper_colors = list(quant._qs_wrappers._FLATUI_COLORS)
+    quant.render_qs_plot("UEC", "2y", "returns", benchmark="SPY")
+    assert quant._qs_core._plt is plt and quant._qs_wrappers._plt is plt
+    assert list(quant._qs_core._FLATUI_COLORS) == core_colors
+    assert list(quant._qs_wrappers._FLATUI_COLORS) == wrapper_colors
+    assert matplotlib.rcParams["axes.facecolor"] == facecolor
+
+
+def test_concurrent_renders_do_not_mix_figures(market_with_benchmark):
+    from concurrent.futures import ThreadPoolExecutor
+
+    slugs = ["returns", "snapshot", "drawdown", "monthly-heatmap"] * 2
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        pngs = list(pool.map(lambda slug: quant.render_qs_plot("UEC", "2y", slug, benchmark="SPY"), slugs))
+    assert all(png.startswith(PNG_SIGNATURE) for png in pngs)
+    assert pngs[:4] == pngs[4:]  # misma gráfica, mismos bytes: nada se ha cruzado
+
+
+def test_tearsheet_gets_the_brand_css(fake_market):
+    head = quant.tearsheet_html("UEC", "2y").split("</head>", 1)[0]
+    assert 'id="moainvest-brand"' in head
+    assert "Geist" in head
+    assert quant.BRAND in head
+
+
+def test_brand_tearsheet_without_head_is_unchanged():
+    assert quant.brand_tearsheet("<p>x</p>") == "<p>x</p>"
+
+
+def test_quant_stats_has_no_old_tradingview_colors():
+    """Las gráficas usan los colores de app.core.charts, no el azul/verde de antes."""
+    from pathlib import Path
+
+    sources = [p for p in Path(quant.__file__).parent.rglob("*") if p.suffix in {".py", ".html", ".js", ".css"}]
+    assert sources
+    for path in sources:
+        text = path.read_text(encoding="utf-8").lower()
+        for old in ("#2962ff", "#26a69a", "#ef5350"):
+            assert old not in text, f"{old} en {path}"

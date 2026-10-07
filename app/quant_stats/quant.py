@@ -26,7 +26,8 @@ import tempfile
 import threading
 import time
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from typing import Any, Literal
 
@@ -39,13 +40,19 @@ import numpy as np
 import pandas as pd
 import quantstats as qs
 import seaborn as sns
-from matplotlib.colors import TwoSlopeNorm
+from matplotlib.collections import QuadMesh
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm, to_rgb, to_rgba
+from quantstats._plotting import core as _qs_core
+from quantstats._plotting import wrappers as _qs_wrappers
 
 from app.core import market_data
-from app.core.charts import PALETTE as _PALETTE
+from app.core.charts import BRAND, BRAND_BRIGHT, BRAND_DEEP, DOWN, INK, LINE, MPL_RC, MUTED, PALETTE, PAPER, UP
 
-UP_COLOR = "#26a69a"
-DOWN_COLOR = "#ef5350"
+UP_COLOR = UP
+DOWN_COLOR = DOWN
+# Mapa divergente del heatmap mensual: rojo de marca (pérdidas), blanco (0) y
+# verde (ganancias), los mismos colores que --down/--up de la app.
+HEATMAP_CMAP = LinearSegmentedColormap.from_list("moainvest_rdwgn", [BRAND, PAPER, UP])
 MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 
@@ -229,6 +236,11 @@ def _close_on_or_after(prices: pd.Series, date: pd.Timestamp) -> float | None:
 
 def render_drawdown_chart(ticker: str, period: str = "2y") -> bytes:
     returns = daily_returns(ticker, period)
+    with _brand_theme():
+        return _draw_drawdown(ticker, returns)
+
+
+def _draw_drawdown(ticker: str, returns: pd.Series) -> bytes:
     fig, ax = plt.subplots(figsize=(10, 3.6))
     if returns.empty:
         _no_data(ax, ticker)
@@ -254,6 +266,11 @@ def render_drawdown_chart(ticker: str, period: str = "2y") -> bytes:
 
 def render_monthly_heatmap(ticker: str, period: str = "2y") -> bytes:
     returns = daily_returns(ticker, period)
+    with _brand_theme():
+        return _draw_monthly_heatmap(ticker, returns)
+
+
+def _draw_monthly_heatmap(ticker: str, returns: pd.Series) -> bytes:
     if returns.empty:
         fig, ax = plt.subplots(figsize=(10, 3))
         _no_data(ax, ticker)
@@ -268,9 +285,10 @@ def render_monthly_heatmap(ticker: str, period: str = "2y") -> bytes:
         ax=ax,
         annot=True,
         fmt=".1f",
-        cmap="RdYlGn",
+        cmap=HEATMAP_CMAP,
         norm=TwoSlopeNorm(vcenter=0, vmin=-limit, vmax=limit),
-        linewidths=0.5,
+        linewidths=1,
+        linecolor=PAPER,
         cbar_kws={"label": "Retorno mensual (%)"},
     )
     ax.set_title(f"{ticker} · Retornos mensuales (%)")
@@ -286,6 +304,11 @@ def render_earnings_chart(ticker: str, count: int = 4) -> bytes:
     cada reporte marcado y la variación de precio y días entre uno y otro.
     """
     reports = last_earnings(ticker, count)
+    with _brand_theme():
+        return _draw_earnings(ticker, reports)
+
+
+def _draw_earnings(ticker: str, reports: list[EarningsReport]) -> bytes:
     fig, (ax_eps, ax_price) = plt.subplots(1, 2, figsize=(13, 4.4), gridspec_kw={"width_ratios": [1, 1.4]})
     if not reports:
         _no_data(ax_eps, ticker)
@@ -304,7 +327,7 @@ def _plot_eps(ax, reports: list[EarningsReport]) -> None:
     estimates = [r.eps_estimate if r.eps_estimate is not None else np.nan for r in reports]
     reported = [r.eps_reported for r in reports]
 
-    ax.bar(x - width / 2, estimates, width, label="EPS estimado", color=_PALETTE[4])
+    ax.bar(x - width / 2, estimates, width, label="EPS estimado", color="#a3a3a3")
     ax.bar(
         x + width / 2,
         reported,
@@ -312,11 +335,11 @@ def _plot_eps(ax, reports: list[EarningsReport]) -> None:
         label="EPS reportado",
         color=[UP_COLOR if r.eps_beat in (True, None) else DOWN_COLOR for r in reports],
     )
-    ax.axhline(0, color="#555", linewidth=0.8)
+    ax.axhline(0, color=MUTED, linewidth=0.8)
 
     # Distancia entre un reporte y el siguiente: línea que une los EPS
     # reportados, anotada con la variación.
-    ax.plot(x + width / 2, reported, color=_PALETTE[0], marker="o", linewidth=1.5, label="Evolución EPS")
+    ax.plot(x + width / 2, reported, color=INK, marker="o", linewidth=1.5, label="Evolución EPS")
     for i in range(1, len(reports)):
         change = reports[i].eps_change
         mid_x = (x[i - 1] + x[i]) / 2 + width / 2
@@ -327,7 +350,7 @@ def _plot_eps(ax, reports: list[EarningsReport]) -> None:
             ha="center",
             va="bottom",
             fontsize=9,
-            color=_PALETTE[0],
+            color=INK,
             fontweight="bold",
             xytext=(0, 6),
             textcoords="offset points",
@@ -345,12 +368,12 @@ def _plot_eps(ax, reports: list[EarningsReport]) -> None:
 def _plot_price_between_earnings(ax, ticker: str, reports: list[EarningsReport]) -> None:
     prices = closing_prices(ticker, "2y")
     window = prices[prices.index >= reports[0].date - pd.Timedelta(days=20)]
-    ax.plot(window.index, window.to_numpy(), color=_PALETTE[0], linewidth=1.2)
+    ax.plot(window.index, window.to_numpy(), color=BRAND, linewidth=1.4)
 
     for r in reports:
-        ax.axvline(r.date, color=_PALETTE[3], linestyle="--", linewidth=1)
+        ax.axvline(r.date, color=MUTED, linestyle="--", linewidth=1)
         if r.close is not None:
-            ax.scatter([r.date], [r.close], color=_PALETTE[3], zorder=3)
+            ax.scatter([r.date], [r.close], color=INK, zorder=3)
 
     # Tramo entre cada par de reportes: variación de precio y días.
     # Se deja un margen superior para las etiquetas, fuera de la línea de precio.
@@ -625,9 +648,10 @@ def render_qs_plot(
     spec = PLOTS_BY_SLUG[slug]
     returns = daily_returns(ticker, period)
     if returns.size < 2:
-        fig, ax = plt.subplots(figsize=(10, 3))
-        _no_data(ax, ticker)
-        return _to_png(fig)
+        with _brand_theme():
+            fig, ax = plt.subplots(figsize=(10, 3))
+            _no_data(ax, ticker)
+            return _to_png(fig)
 
     kwargs: dict[str, Any] = {"show": False, "fontname": QS_FONT}
     if spec.benchmark:
@@ -640,14 +664,15 @@ def render_qs_plot(
         window = window or DEFAULT_ROLLING_WINDOW
         kwargs["period"] = window
         kwargs["period_label"] = ROLLING_WINDOWS.get(window, f"{window} sesiones")
-    if spec.function in {"snapshot", "earnings"}:
+    if spec.function in {"snapshot", "earnings", "drawdowns_periods"}:
         kwargs["title"] = ticker
     if spec.function == "monthly_heatmap":
         kwargs["returns_label"] = ticker
 
-    with _QS_PLOT_LOCK, warnings.catch_warnings():
+    with _brand_theme(), warnings.catch_warnings():
         warnings.simplefilter("ignore")
         fig = getattr(qs.plots, spec.function)(returns.rename(ticker), **kwargs)
+        _brand_figure(fig)
         return _to_png(fig)
 
 
@@ -719,15 +744,16 @@ def render_montecarlo_chart(
     """PNG de ``MonteCarloResult.plot()``: caminos simulados, banda de
     confianza y umbrales de bust/goal."""
     returns = daily_returns(ticker, period)
-    if returns.size < 2:
-        fig, ax = plt.subplots(figsize=(10, 3))
-        _no_data(ax, ticker)
-        return _to_png(fig)
-    with _QS_PLOT_LOCK:
+    with _brand_theme():
+        if returns.size < 2:
+            fig, ax = plt.subplots(figsize=(10, 3))
+            _no_data(ax, ticker)
+            return _to_png(fig)
         mc = _montecarlo(returns.rename(ticker), sims, bust, goal)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             fig = mc.plot(show=False, fontname=QS_FONT, title=f"{ticker} · Monte Carlo ({sims} simulaciones)")
+        _brand_figure(fig)
         return _to_png(fig)
 
 
@@ -748,11 +774,137 @@ def tearsheet_html(ticker: str, period: str, benchmark: str | None = None) -> st
 
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, "tearsheet.html")
-        with _QS_PLOT_LOCK, warnings.catch_warnings():
+        with _brand_theme(), warnings.catch_warnings():
             warnings.simplefilter("ignore")
             qs.reports.html(returns.rename(ticker), output=path, **kwargs)
         with open(path, encoding="utf-8") as fh:
-            return fh.read()
+            return brand_tearsheet(fh.read())
+
+
+# CSS de marca que se inyecta en el tearsheet de quantstats: Geist, texto
+# negro, acentos rojos y tablas con filas separadas por ``line``, como la app.
+TEARSHEET_CSS = f"""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<style id="moainvest-brand">
+body{{border-top:4px solid {BRAND};padding-top:8px;color:{INK};background:{PAPER}}}
+body,p,table,td,th{{font-family:"Geist",ui-sans-serif,system-ui,sans-serif}}
+h1{{font-weight:600;letter-spacing:-0.02em}}
+h1 dt{{font-family:"Geist Mono",ui-monospace,monospace;color:{MUTED};font-size:12px}}
+h3{{font-weight:600;color:{INK}}}
+h4,h4 a{{color:{MUTED}}}h4 a:hover{{color:{BRAND}}}
+hr{{border-top-color:{LINE}}}
+table td{{font-family:"Geist Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;border-bottom:1px solid {LINE}}}
+table td:first-of-type{{font-family:"Geist",ui-sans-serif,system-ui,sans-serif}}
+table thead th{{background:#f7f7f5;color:{INK};font-weight:600;border-bottom:1px solid {LINE}}}
+</style>
+"""
+
+
+def brand_tearsheet(html: str) -> str:
+    """Inyecta ``TEARSHEET_CSS`` antes de ``</head>`` (sin cambios si no lo hay)."""
+    return html.replace("</head>", TEARSHEET_CSS + "</head>", 1)
+
+
+# --------------------------------------------------------------------------
+# Tema de marca para matplotlib y quantstats
+# --------------------------------------------------------------------------
+
+# Paleta que usa quantstats: el índice 0 es el benchmark (gris) y el 1 el
+# activo (rojo de marca); el resto, rojos y negros secundarios.
+QS_COLORS = [MUTED, BRAND, BRAND_DEEP, PALETTE[5], BRAND_BRIGHT, INK, MUTED, BRAND, BRAND_DEEP, INK]
+
+# Colores fijos dentro de quantstats (fuera de su paleta) y su equivalente de
+# marca: la línea "Original" y los umbrales del Monte Carlo, la media de las
+# gráficas móviles (``hlcolor="red"``) y los peores drawdowns.
+_QS_FIXED_COLORS = {
+    "red": INK,
+    "darkred": BRAND_DEEP,
+    "darkgreen": UP,
+    "blue": INK,
+    "#348dc1": BRAND,
+    "#003366": INK,
+}
+_RECOLOR = {to_rgb(old): new for old, new in _QS_FIXED_COLORS.items()}
+
+
+class _BrandedPyplot:
+    """``pyplot`` para quantstats que aplica ``_brand_figure`` antes de cada
+    ``savefig`` (las gráficas del tearsheet se guardan dentro de quantstats)."""
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(plt, name)
+
+    def savefig(self, *args: Any, **kwargs: Any) -> Any:
+        _brand_figure(plt.gcf())
+        return plt.savefig(*args, **kwargs)
+
+
+@contextmanager
+def _brand_theme() -> Iterator[None]:
+    """Dibuja con el tema claro de ``core.charts`` (``MPL_RC``) y la paleta de
+    marca en quantstats (``QS_COLORS``).
+
+    ``rc_context`` y las paletas de quantstats son estado global del proceso:
+    todo se hace bajo ``_QS_PLOT_LOCK`` y se restaura al salir, para que dos
+    peticiones simultáneas no mezclen figuras ni estilos.
+    """
+    with _QS_PLOT_LOCK, matplotlib.rc_context(MPL_RC):
+        saved = (_qs_core._FLATUI_COLORS, _qs_wrappers._FLATUI_COLORS, _qs_core._plt, _qs_wrappers._plt)
+        _qs_core._FLATUI_COLORS = list(QS_COLORS)
+        _qs_wrappers._FLATUI_COLORS = list(QS_COLORS[:6])
+        _qs_core._plt = _qs_wrappers._plt = _BrandedPyplot()
+        try:
+            yield
+        finally:
+            _qs_core._FLATUI_COLORS, _qs_wrappers._FLATUI_COLORS, _qs_core._plt, _qs_wrappers._plt = saved
+
+
+def _brand_figure(fig) -> None:
+    """Cambia los colores fijos de quantstats (``_QS_FIXED_COLORS``) por los de
+    marca y pasa sus heatmaps (``RdYlGn``) a ``HEATMAP_CMAP``, conservando la opacidad."""
+    for ax in fig.axes:
+        for line in ax.get_lines():
+            line.set_color(_brand_color(line.get_color()))
+        for patch in ax.patches:
+            patch.set_facecolor(_brand_color(patch.get_facecolor()))
+            patch.set_edgecolor(_brand_color(patch.get_edgecolor()))
+        for collection in ax.collections:
+            # Heatmap anotado de seaborn (la barra de color no lleva textos).
+            if isinstance(collection, QuadMesh) and ax.texts and collection.cmap is not HEATMAP_CMAP:
+                _recolor_heatmap(ax, collection)
+                continue
+            collection.set_facecolor([_brand_color(c) for c in collection.get_facecolor()])
+            collection.set_edgecolor([_brand_color(c) for c in collection.get_edgecolor()])
+        legend = ax.get_legend()
+        for handle in legend.legend_handles if legend is not None else ():
+            if hasattr(handle, "get_color"):
+                handle.set_color(_brand_color(handle.get_color()))
+            elif hasattr(handle, "get_facecolor"):
+                handle.set_facecolor(_brand_color(handle.get_facecolor()))
+
+
+def _brand_color(color: Any) -> Any:
+    rgba = to_rgba(color)
+    new = _RECOLOR.get(rgba[:3])
+    return to_rgba(new, rgba[3]) if new else color
+
+
+def _recolor_heatmap(ax, mesh) -> None:
+    """Heatmap de seaborn con ``HEATMAP_CMAP``: cambia el mapa (la barra de
+    color lo sigue) y recalcula el color de cada anotación según la luminancia
+    de su celda, como hace seaborn."""
+    data = np.ma.masked_invalid(np.ma.asarray(mesh.get_array()).ravel())
+    values = data.compressed()
+    # quantstats centra en 0 (``center=0``) remuestreando el mapa: aquí se
+    # centra con la norma, simétrica, como ``render_monthly_heatmap``.
+    limit = max(1.0, float(np.abs(values).max())) if values.size else 1.0
+    mesh.set_cmap(HEATMAP_CMAP)
+    mesh.set_norm(TwoSlopeNorm(vcenter=0, vmin=-limit, vmax=limit))
+    for text, value in zip(ax.texts, values):
+        luminance = sns.utils.relative_luminance(mesh.cmap(mesh.norm(value)))
+        text.set_color(INK if luminance > 0.408 else PAPER)
 
 
 def _no_data(ax, ticker: str) -> None:
