@@ -1,13 +1,43 @@
+/* Tokens del área App. Son los mismos colores que el sitio rojo MOAINVEST
+   (moainvest/static/src/moainvest.css, bloque @theme): blancos, rojos y negros.
+   Los nombres antiguos (--bg, --text, --accent...) se mantienen para que todas
+   las páginas los sigan usando; usa los de marca (--brand, --ink...) en lo nuevo. */
 :root {
-  --bg: #0d1117;
-  --bg-panel: #131a24;
-  --bg-elevated: #1b2431;
-  --border: #232c3a;
-  --text: #d7dde5;
-  --text-muted: #7c8a9e;
-  --accent: #2962ff;
-  --up: #26a69a;
-  --down: #ef5350;
+  /* Marca MOAINVEST */
+  --brand: #c8102e;
+  --brand-deep: #8f1025;
+  --brand-soft: #fbeef0;
+  --brand-bright: #ff5a6e; /* rojo para texto sobre fondo negro */
+  --logo: #d7020a;
+  --ink: #171717;
+  --muted: #6b6b6b;
+  --paper: #ffffff;
+  --mist: #f7f7f5;
+  --line: #e6e4df;
+  --up-soft: #e7f5ef;
+  --down-soft: #fbeef0;
+
+  /* Alias usados por las páginas existentes */
+  --bg: var(--mist);
+  --bg-panel: var(--paper);
+  --bg-elevated: var(--mist);
+  --border: var(--line);
+  --text: var(--ink);
+  --text-muted: var(--muted);
+  --accent: var(--brand);
+  --up: #0f8a5f;
+  --down: var(--brand);
+
+  /* Tipografía (Geist, como el sitio rojo; se carga en core/base.html) */
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+
+  --radius: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(23, 23, 23, 0.04), 0 8px 24px -16px rgba(23, 23, 23, 0.18);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 64px;
 }
@@ -22,7 +52,7 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
 }
 
 a {
