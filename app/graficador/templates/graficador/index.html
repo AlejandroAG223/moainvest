@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+
+{% block title %}Graficador · {{ site_name }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('graficador.static', filename='graficador.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="graficador" id="graficador"
+     data-ticker="{{ ticker }}"
+     data-candles-url="{{ url_for('core_api.candles', ticker='__T__') }}"
+     data-quote-url="{{ url_for('core_api.quote', ticker='__T__') }}">
+  <header class="graficador__header">
+    <div>
+      <h1 class="graficador__title">
+        <span id="graficador-symbol">{{ ticker or "Graficador" }}</span>
+        <span class="graficador__name" id="graficador-name"></span>
+      </h1>
+      <p class="graficador__quote" id="graficador-quote" aria-live="polite"></p>
+    </div>
+
+    <form class="graficador__search" id="graficador-search" method="get" action="{{ url_for('graficador.index') }}" role="search">
+      <label class="graficador__sr" for="graficador-ticker">Ticker de Yahoo Finance</label>
+      <input type="text" id="graficador-ticker" name="ticker" class="graficador__input"
+             value="{{ query }}" placeholder="Ticker, p. ej. AAPL, ^GSPC, BTC-USD"
+             autocomplete="off" spellcheck="false" required maxlength="20">
+      <button type="submit" class="graficador__btn">Buscar</button>
+    </form>
+  </header>
+
+  {% if error %}
+  <p class="graficador__status graficador__status--error" id="graficador-error" role="alert">{{ error }}</p>
+  {% else %}
+  <div class="graficador__toolbar">
+    <div class="graficador__group" role="group" aria-label="Rango" id="graficador-ranges">
+      {% for r in ranges %}
+      <button type="button" class="graficador__chip" data-range="{{ r.range }}" data-interval="{{ r.interval }}"
+              aria-pressed="{{ 'true' if r.label == default_range else 'false' }}">{{ r.label }}</button>
+      {% endfor %}
+    </div>
+    <div class="graficador__group" role="group" aria-label="Tipo de serie" id="graficador-types">
+      {% for t in series_types %}
+      <button type="button" class="graficador__chip" data-series-type="{{ t.value }}"
+              aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t.label }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="graficador__chart-wrap">
+    <div class="graficador__legend" id="graficador-legend" aria-live="off"></div>
+    <div class="graficador__chart" id="graficador-chart"></div>
+    <p class="graficador__status graficador__overlay" id="graficador-status" hidden></p>
+  </div>
+  <p class="graficador__note">Datos de Yahoo Finance. Horas en UTC.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not error %}
+<script src="{{ url_for('graficador.static', filename='graficador.js') }}"></script>
+{% endif %}
+{% endblock %}

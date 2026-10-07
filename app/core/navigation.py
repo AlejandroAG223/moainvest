@@ -48,7 +48,7 @@ class App:
 # Informes y después el resto de subapps. ``tests/core/test_navigation.py``
 # comprueba que toda app de ``INSTALLED_APPS`` con páginas tenga su entrada.
 APPS: tuple[App, ...] = (
-    App(slug="graficas", name="Gráficas", icon="📈", endpoint="moainvest.graficas", kind="blank"),
+    App(slug="graficador", name="Graficador", icon="📈", endpoint="graficador.index", kind="blank"),
     App(slug="informes", name="Informes", icon="📨", endpoint="informes.index", kind="blank"),
     App(slug="analisis-varianza", name="Análisis de varianza", icon="🧮", endpoint="varianza.index", kind="blank"),
     App(

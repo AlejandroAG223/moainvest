@@ -190,7 +190,7 @@
       timeScale: { borderColor: "#e6e4df", timeVisible: true, secondsVisible: false },
       crosshair: { mode: LC.CrosshairMode.Normal },
     });
-    const series = chart.addCandlestickSeries({ upColor: UP, downColor: DOWN, borderVisible: false, wickUpColor: UP, wickDownColor: DOWN });
+    const series = chart.addSeries(LC.CandlestickSeries, { upColor: UP, downColor: DOWN, borderVisible: false, wickUpColor: UP, wickDownColor: DOWN });
 
     function showStatus(text) {
       status.hidden = !text;
