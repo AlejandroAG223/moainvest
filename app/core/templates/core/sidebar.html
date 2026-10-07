@@ -1,7 +1,10 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar__brand">
-    <span class="sidebar__logo">📈</span>
-    <span class="sidebar__title">{{ site_name }}</span>
+    {#- La marca vuelve a "Inicio", el sitio rojo. -#}
+    <a class="sidebar__home" href="{{ url_for('moainvest.resumen') }}" title="Inicio">
+      <span class="sidebar__logo">📈</span>
+      <span class="sidebar__title">{{ site_name }}</span>
+    </a>
     <button class="sidebar__toggle" id="sidebar-toggle" aria-label="Colapsar sidebar" type="button">«</button>
   </div>
 

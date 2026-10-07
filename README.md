@@ -39,15 +39,15 @@ app/
     commands.py                # flask build-css (Tailwind sin Node)
     templates/moainvest/
     static/                    # moainvest.css (compilado), moainvest.js, src/, logos
-  varianza/                  # Análisis de Varianza: "/analisis-varianza/"
+  varianza/                  # Análisis de Varianza: "/app/analisis-varianza/"
     views.py, api.py           # Página y /api/volatility-chart
     analysis.py                # Volatilidad mensual + histogramas (seaborn)
     templates/varianza/, static/
-  quant_stats/               # QUANT STATS: "/quant-stats/..."
+  quant_stats/               # QUANT STATS: "/app/quant-stats/..."
     views.py, api.py           # Páginas y /api/quant/<ticker>/...
     quant.py                   # quantstats: stats, Monte Carlo, plots, reports y earnings
     templates/quant_stats/
-  informes/                  # Informes por email: "/informes/"
+  informes/                  # Informes por email: "/app/informes/"
     views.py, api.py           # Página y /api/report/..., /api/email/send-assets-report
     commands.py                # flask cloudinary-upload
     report.py                  # Informe HTML de cotizaciones
@@ -131,7 +131,7 @@ en el navegador y `POST /api/email/send-assets-report` con
 `{"to": "destino@ejemplo.com", "watchlists": ["overview"]}` para enviarlo
 (`watchlists` es opcional).
 
-Desde la app, el apartado **📨 Informes** (`/informes/`) permite elegir las
+Desde la app, el apartado **📨 Informes** (`/app/informes/`) permite elegir las
 watchlists, ver el informe con "Ver informe" y enviarlo con "Enviar por correo".
 
 ### Imágenes con Cloudinary
@@ -152,11 +152,11 @@ Sin `CLOUDINARY_URL`, la página usa las copias locales de `app/informes/static/
 
 Análisis cuantitativo con [quantstats](https://github.com/ranaroussi/quantstats)
 de **cualquier activo de Yahoo Finance** (`?ticker=AAPL`, `^GSPC`, `BTC-USD`...;
-UEC por defecto) en `/quant-stats/`, sobre los retornos diarios del período
+UEC por defecto) en `/app/quant-stats/`, sobre los retornos diarios del período
 elegido (1, 2 o 5 años, o todo). Tiene dos subsecciones en el sidebar que no
 se solapan:
 
-- **Gráficas y fundamentales estadísticos** (`/quant-stats/fundamentales`):
+- **Gráficas y fundamentales estadísticos** (`/app/quant-stats/fundamentales`):
   el activo por sí solo, según los 3 módulos principales de quantstats.
   - **stats**: 5 métricas de resumen y 26 más agrupadas (rendimiento, riesgo,
     ajustado por riesgo y operativa diaria), más la **simulación Monte Carlo**
@@ -165,7 +165,7 @@ se solapan:
     que goal siempre es 0% o 100%; bust y los drawdowns son lo informativo.
   - **plots**: 14 gráficas nativas de `qs.plots`.
   - **reports**: tearsheet HTML de `qs.reports.html` (abrir o descargar).
-- **Revisión analítica** (`/quant-stats/revision`): todo lo comparativo.
+- **Revisión analítica** (`/app/quant-stats/revision`): todo lo comparativo.
   - **Activo vs. benchmark** (cualquier ticker): gráficas superpuestas, beta
     móvil, todas las métricas lado a lado y tearsheet con benchmark.
   - **Período vs. período**: la misma gráfica en dos períodos, lado a lado.
@@ -224,7 +224,7 @@ El sitio principal, con el diseño rojo de MOAINVEST, se sirve en la raíz:
 | `/informe` | **Informe**: elegir watchlists, vista previa y envío por correo |
 
 Cualquier ruta inexistente muestra el 404 con este mismo diseño. Análisis de
-varianza, Quant stats e Informes siguen en sus rutas, con el layout de sidebar,
+varianza, Quant stats e Informes viven en el área App (`/app/...`), con el layout de sidebar,
 y su enlace «Gráficas» lleva a `/graficas`.
 
 - App `app/moainvest/`: `views.py` y plantillas en `templates/moainvest/`.
@@ -239,6 +239,30 @@ y su enlace «Gráficas» lleva a `/graficas`.
   ```bash
   uv run flask --app run build-css          # o --watch mientras desarrollas
   ```
+
+### Área App
+
+Todo lo que se ve con el layout oscuro de sidebar cuelga de `/app/`:
+
+| Ruta | Subapp |
+|---|---|
+| `/app/informes/` | Informes |
+| `/app/analisis-varianza/` | Análisis de varianza |
+| `/app/quant-stats/` (`fundamentales`, `revision`, `tearsheet`) | Quant stats |
+
+Las APIs siguen en `/api/...`. Las rutas antiguas (`/analisis-varianza/...`,
+`/quant-stats/...`, `/informes/...`) redirigen con **301** a su equivalente
+bajo `/app/`, conservando subruta y query string (`LEGACY_APP_PREFIXES` en
+`app/core/views.py`).
+
+- El orden del sidebar es el de `APPS` en `app/core/navigation.py`: primero
+  el graficador, luego Informes y después el resto de subapps.
+- `tests/core/test_navigation.py` recorre `INSTALLED_APPS` y falla si una app
+  con páginas propias (salvo `core` y `moainvest`) no tiene su `App(...)` en
+  `APPS`: una subapp nueva no puede quedarse fuera del sidebar. Dale también
+  un `url_prefix="/app/<slug>"` a su blueprint de páginas.
+- La marca del sidebar (logo y `site_name`) enlaza a **Inicio**
+  (`moainvest.resumen`, `/`) para volver al sitio rojo.
 
 ## Puesta en marcha
 

@@ -44,8 +44,12 @@ class App:
     sections: tuple[AppSection, ...] = ()
 
 
+# Orden del sidebar del área "App" (/app/): primero el graficador, luego
+# Informes y después el resto de subapps. ``tests/core/test_navigation.py``
+# comprueba que toda app de ``INSTALLED_APPS`` con páginas tenga su entrada.
 APPS: tuple[App, ...] = (
     App(slug="graficas", name="Gráficas", icon="📈", endpoint="moainvest.graficas", kind="blank"),
+    App(slug="informes", name="Informes", icon="📨", endpoint="informes.index", kind="blank"),
     App(slug="analisis-varianza", name="Análisis de varianza", icon="🧮", endpoint="varianza.index", kind="blank"),
     App(
         slug="quant-stats",
@@ -63,7 +67,6 @@ APPS: tuple[App, ...] = (
             AppSection(slug="revision", name="Revisión analítica", icon="🔍", endpoint="quant_stats.revision"),
         ),
     ),
-    App(slug="informes", name="Informes", icon="📨", endpoint="informes.index", kind="blank"),
 )
 
 

@@ -10,7 +10,7 @@ from tests.factories import fake_quote
 def test_pages_show_site_name(client, app):
     site_name = app.config["SITE_NAME"]
     assert site_name == "MoaiInvest"
-    page = client.get("/analisis-varianza/").get_data(as_text=True)
+    page = client.get("/app/analisis-varianza/").get_data(as_text=True)
     assert f"· {site_name}</title>" in page
     assert f'<span class="sidebar__title">{site_name}</span>' in page
     assert "Market Dashboard" not in page
@@ -83,11 +83,31 @@ def _sidebar_link_names(html: str) -> list[str]:
     return re.findall(pattern, html.split('<aside class="sidebar"', 1)[1].split("</aside>", 1)[0])
 
 
-@pytest.mark.parametrize("url", ["/quant-stats/fundamentales", "/analisis-varianza/"])
+@pytest.mark.parametrize("url", ["/app/quant-stats/fundamentales", "/app/analisis-varianza/"])
 def test_sidebar_links_use_sentence_case(client, fake_uec, url):
     names = _sidebar_link_names(client.get(url).data.decode())
     assert "Quant stats" in names and "Análisis de varianza" in names
-    if url.startswith("/quant-stats"):
+    if url.startswith("/app/quant-stats"):
         assert {"Gráficas y fundamentales estadísticos", "Revisión analítica"} <= set(names)
     for name in names:
         assert name == name[:1].upper() + name[1:].lower(), name
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("/analisis-varianza/", "/app/analisis-varianza/"),
+        ("/informes/", "/app/informes/"),
+        ("/quant-stats/", "/app/quant-stats/"),
+        ("/quant-stats/revision?ticker=CCJ&mode=earnings", "/app/quant-stats/revision?ticker=CCJ&mode=earnings"),
+    ],
+)
+def test_old_app_urls_redirect_permanently_to_app_area(client, old, new):
+    response = client.get(old)
+    assert response.status_code == 301
+    assert response.headers["Location"].endswith(new)
+
+
+def test_sidebar_brand_links_to_home(client):
+    page = client.get("/app/analisis-varianza/").get_data(as_text=True)
+    assert '<a class="sidebar__home" href="/" title="Inicio">' in page

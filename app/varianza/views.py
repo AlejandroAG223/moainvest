@@ -12,7 +12,7 @@ from app.core.navigation import get_app
 bp = Blueprint(
     "varianza",
     __name__,
-    url_prefix="/analisis-varianza",
+    url_prefix="/app/analisis-varianza",
     template_folder="templates",
     static_folder="static",
 )
