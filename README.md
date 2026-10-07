@@ -424,6 +424,19 @@ uv run run.py           # http://localhost:5000
 uv run pytest
 ```
 
+### CI/CD
+
+El workflow `.github/workflows/tests.yml` (GitHub Actions) ejecuta la suite en
+cada **pull request hacia `stg` o `main`**, y también a mano desde la pestaña
+Actions (`workflow_dispatch`). Instala uv, Python según `.python-version` y
+las dependencias exactas de `uv.lock` (`uv sync --locked`), y corre
+`uv run pytest`. Si llegan commits nuevos al PR, cancela la ejecución
+anterior. No necesita `.env` ni secretos: los tests no tocan la red.
+
+Para que un PR no se pueda mergear con los tests en rojo, en GitHub ve a
+*Settings → Branches* y añade una regla de protección para `main` y `stg`
+con el check **Tests / pytest** como obligatorio.
+
 ## Notas
 
 - Los precios se cachean en memoria (`QUOTE_CACHE_TTL` / `CANDLE_CACHE_TTL`
