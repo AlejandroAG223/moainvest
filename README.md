@@ -277,8 +277,8 @@ bajo `/app/`, conservando subruta y query string (`LEGACY_APP_PREFIXES` en
   con páginas propias (salvo `core` y `moainvest`) no tiene su `App(...)` en
   `APPS`: una subapp nueva no puede quedarse fuera del sidebar. Dale también
   un `url_prefix="/app/<slug>"` a su blueprint de páginas.
-- La marca del sidebar (logo y `site_name`) enlaza a **Inicio**
-  (`moainvest.resumen`, `/`) para volver al sitio rojo.
+- El logo de la barra superior enlaza a **Inicio** (`moainvest.resumen`, `/`)
+  para volver al sitio rojo (ver «Estética del área App»).
 
 ### Graficador
 
@@ -329,6 +329,61 @@ en las secciones "Análisis de Varianza" e "Informes" de
   `app/core/charts.py` dentro de `rc_context`, sin cambiar el tema global de
   matplotlib. El email (`informes/emails/market_report.html`) usa los mismos
   colores con estilos en línea y tablas.
+
+### Estética del área App
+
+Las páginas de `/app/...` usan el mismo lenguaje visual que el sitio rojo
+(`moainvest/base.html`): blancos, rojos y negros, Geist, bordes `line` y pills.
+
+- **Shell** (`app/core/templates/core/base.html`): carga las mismas fuentes de
+  Google (Geist, Geist Mono, Instrument Serif), los favicons de
+  `moainvest.static` y `theme-color` blanco. Arriba, una **barra superior**
+  fija (`.topbar`) con el logo `moainvest/static/logo/moainvest-compact.png`
+  enlazado a Inicio y el navbar de `moainvest_nav` (Inicio / App, con App
+  activo y subrayado rojo). Bloques: `title`, `head`, `content` y `scripts`.
+- **Sidebar** (`core/sidebar.html`): blanco con borde `line`, iconos de línea
+  de `core/icons.html` por slug (`nav_icons`; una app sin entrada usa el emoji
+  de `App.icon`) y la app activa con fondo `brand-soft`, texto `brand` y barra
+  lateral roja. En escritorio se colapsa (`#sidebar-toggle`, recordado en
+  `localStorage`); por debajo de 760px es un **cajón** que abre el botón de
+  menú de la barra (`#sidebar-open`) y se cierra con el fondo o Escape
+  (`core/static/js/app.js`).
+- **Tokens** (`:root` de `core/static/css/style.css`): `--brand`,
+  `--brand-deep`, `--brand-soft`, `--brand-bright`, `--logo`, `--ink`,
+  `--muted`, `--paper`, `--mist`, `--line`, `--up`/`--up-soft`,
+  `--down`/`--down-soft`, `--font-sans/mono/serif`, `--radius`,
+  `--radius-pill`, `--shadow-card`, `--ease-out-soft` y, para el shell,
+  `--topbar-height`, `--sidebar-width` y `--sidebar-width-collapsed`. Los
+  alias antiguos (`--bg`, `--bg-panel`, `--text`, `--accent`...) apuntan a ellos.
+- **Componentes genéricos** (sección «Contenido principal» de `style.css`),
+  para que cualquier página se vea de la familia sin Tailwind:
+
+  | Clase | Aspecto |
+  |---|---|
+  | `.page` | contenedor de página (máx. 1120px, márgenes del sitio rojo) |
+  | `.page-head`, `.eyebrow`, `.page-title`, `.page-lead` | cabecera como `resumen.html`: eyebrow en mono uppercase con guion rojo, título grande con tracking `-0.04em` y entradilla gris |
+  | `.accent` | una palabra en Instrument Serif itálica y roja dentro del título |
+  | `.card`, `.card--mist` | tarjeta blanca con borde `line`, radio 16px y `--shadow-card` (o fondo mist) |
+  | `.btn.btn--primary`, `.btn.btn--secondary`, `.btn--sm` | pill rojo para la acción primaria y outline negro para la secundaria |
+  | `.input`, `.select` | campos pill con borde `line` y foco rojo |
+  | `.table-wrap`, `.table` | tabla con cabecera mist en mono uppercase |
+  | `.pill.is-up` / `.pill.is-down` | variación de precio en verde o rojo |
+
+  Ejemplo:
+
+  ```html
+  <div class="page">
+    <header class="page-head">
+      <p class="eyebrow">Herramientas · Yahoo Finance</p>
+      <h1 class="page-title">Análisis de <span class="accent">varianza</span>.</h1>
+      <p class="page-lead">Descarga el histórico de un activo.</p>
+    </header>
+    <div class="card">
+      <input class="input" placeholder="AAPL">
+      <button class="btn btn--primary">Descargar</button>
+    </div>
+  </div>
+  ```
 
 ## Puesta en marcha
 

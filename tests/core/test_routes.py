@@ -3,6 +3,7 @@ import re
 
 import pytest
 
+from app.core.navigation import APPS
 from app.core.watchlists import WATCHLISTS
 from tests.factories import fake_quote
 
@@ -12,7 +13,7 @@ def test_pages_show_site_name(client, app):
     assert site_name == "MoaiInvest"
     page = client.get("/app/analisis-varianza/").get_data(as_text=True)
     assert f"· {site_name}</title>" in page
-    assert f'<span class="sidebar__title">{site_name}</span>' in page
+    assert f'alt="{site_name}"' in page  # logo de la barra superior
     assert "Market Dashboard" not in page
 
 
@@ -108,6 +109,39 @@ def test_old_app_urls_redirect_permanently_to_app_area(client, old, new):
     assert response.headers["Location"].endswith(new)
 
 
-def test_sidebar_brand_links_to_home(client):
-    page = client.get("/app/analisis-varianza/").get_data(as_text=True)
-    assert '<a class="sidebar__home" href="/" title="Inicio">' in page
+def _topbar(html: str) -> str:
+    """Marcado de la barra superior del área App (core/base.html)."""
+    return html.split('<header class="topbar">', 1)[1].split("</header>", 1)[0]
+
+
+@pytest.mark.parametrize("url", ["/app/graficador/", "/app/analisis-varianza/", "/app/informes/"])
+def test_app_layout_loads_geist_and_moainvest_brand(client, url):
+    page = client.get(url).get_data(as_text=True)
+    assert "fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono" in page
+    assert '<meta name="theme-color" content="#ffffff">' in page
+    assert 'href="/static/moainvest/icon.png"' in page
+    assert 'href="/static/moainvest/apple-icon.png"' in page
+    assert 'src="/static/moainvest/logo/moainvest-compact.png"' in _topbar(page)
+
+
+def test_topbar_links_to_home_and_marks_app_as_active(client):
+    topbar = _topbar(client.get("/app/analisis-varianza/").get_data(as_text=True))
+    # El logo vuelve a Inicio y el navbar es el mismo del sitio rojo (moainvest_nav).
+    assert '<a class="topbar__brand" href="/"' in topbar
+    assert '<a class="topbar__link" href="/">Inicio</a>' in topbar
+    assert '<a class="topbar__link is-active" href="/app/" aria-current="page">App</a>' in topbar
+    # Botón del cajón del sidebar en móvil.
+    assert 'id="sidebar-open"' in topbar and 'aria-controls="sidebar"' in topbar
+
+
+def test_sidebar_uses_line_icons_and_keeps_the_toggle(client, fake_uec):
+    page = client.get("/app/quant-stats/fundamentales").get_data(as_text=True)
+    sidebar = page.split('<aside class="sidebar"', 1)[1].split("</aside>", 1)[0]
+    assert 'id="sidebar-toggle"' in sidebar
+    for name in ("candlestick-chart", "file-text", "sigma", "flask-conical", "chart-column", "search", "panel-left"):
+        assert f"ui-icon--{name}" in sidebar
+    # Ningún emoji de apps ni de subsecciones.
+    for entry in (*APPS, *(section for a in APPS for section in a.sections)):
+        assert entry.icon not in sidebar
+    assert 'class="sidebar__app is-active"' in sidebar
+    assert 'class="sidebar-backdrop" data-sidebar-close hidden' in page
