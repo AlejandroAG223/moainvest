@@ -132,16 +132,113 @@
     volatilityStatus.classList.toggle("is-error", Boolean(isError));
   }
 
+  // --- Campo de tickers con chips ----------------------------------
+  // Cada ticker escrito (Intro, coma o espacio) se convierte en un chip; lo
+  // que quede a medio escribir se añade al enviar el formulario.
+  const chipsField = document.getElementById("tickers-field");
+  const chipsList = document.getElementById("tickers-chips");
+  const suggestBtns = document.querySelectorAll("#tickers-suggest [data-ticker]");
+  const maxTickers = Number(volatilityForm.dataset.maxTickers) || 6;
+  const tickers = [];
+
+  function renderChips() {
+    const fragment = document.createDocumentFragment();
+    tickers.forEach((ticker) => {
+      const li = document.createElement("li");
+      li.className = "varianza-chip";
+      li.textContent = ticker;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "varianza-chip__remove";
+      remove.setAttribute("aria-label", `Quitar ${ticker}`);
+      remove.textContent = "✕";
+      remove.addEventListener("click", () => removeTicker(ticker));
+      li.appendChild(remove);
+      fragment.appendChild(li);
+    });
+    chipsList.replaceChildren(fragment);
+    suggestBtns.forEach((btn) => {
+      btn.disabled = tickers.includes(btn.dataset.ticker) || tickers.length >= maxTickers;
+    });
+    tickersInput.placeholder = tickers.length ? "Añadir otro…" : "Tickers, p. ej. AAPL, MSFT, GOOG";
+  }
+
+  function addTickers(text) {
+    let added = false;
+    text
+      .split(/[\s,;]+/)
+      .map((t) => t.trim().toUpperCase())
+      .filter(Boolean)
+      .forEach((ticker) => {
+        if (tickers.includes(ticker)) return;
+        if (tickers.length >= maxTickers) {
+          setVolatilityStatus(`Máximo ${maxTickers} tickers a la vez.`, true);
+          return;
+        }
+        tickers.push(ticker);
+        added = true;
+      });
+    if (added) setVolatilityStatus("");
+    renderChips();
+  }
+
+  function removeTicker(ticker) {
+    const index = tickers.indexOf(ticker);
+    if (index >= 0) tickers.splice(index, 1);
+    renderChips();
+    tickersInput.focus();
+  }
+
+  tickersInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === "," || event.key === " ") {
+      if (!tickersInput.value.trim()) {
+        if (event.key !== "Enter") event.preventDefault();
+        return; // Intro con el campo vacío envía el formulario
+      }
+      event.preventDefault();
+      addTickers(tickersInput.value);
+      tickersInput.value = "";
+    } else if (event.key === "Backspace" && !tickersInput.value && tickers.length) {
+      removeTicker(tickers[tickers.length - 1]);
+    }
+  });
+
+  // Pegar "AAPL, MSFT" o salir del campo también crea los chips.
+  tickersInput.addEventListener("paste", (event) => {
+    event.preventDefault();
+    addTickers(event.clipboardData.getData("text"));
+  });
+  tickersInput.addEventListener("blur", () => {
+    if (!tickersInput.value.trim()) return;
+    addTickers(tickersInput.value);
+    tickersInput.value = "";
+  });
+
+  chipsField.addEventListener("click", (event) => {
+    if (event.target === chipsField || event.target === chipsList) tickersInput.focus();
+  });
+
+  suggestBtns.forEach((btn) => {
+    btn.addEventListener("click", () => addTickers(btn.dataset.ticker));
+  });
+
   volatilityForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const tickers = tickersInput.value.trim();
-    if (!tickers) return;
+    if (tickersInput.value.trim()) {
+      addTickers(tickersInput.value);
+      tickersInput.value = "";
+    }
+    if (!tickers.length) {
+      setVolatilityStatus("Añade al menos un ticker.", true);
+      tickersInput.focus();
+      return;
+    }
 
     volatilityBtn.disabled = true;
     chartWrap.hidden = true;
     setVolatilityStatus("Calculando volatilidad mensual…");
 
-    const url = `/api/volatility-chart?tickers=${encodeURIComponent(tickers)}&period=${periodSelect.value}`;
+    const url = `/api/volatility-chart?tickers=${encodeURIComponent(tickers.join(","))}&period=${periodSelect.value}`;
 
     fetch(url)
       .then(async (res) => {

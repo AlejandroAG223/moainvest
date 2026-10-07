@@ -19,32 +19,22 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
 from app.core import market_data
+from app.core.charts import DOWN, INK, MPL_RC, MUTED, PALETTE, UP
 from app.core.watchlists import Watchlist
 
 CHART_RANGE = "1mo"
 CHART_INTERVAL = "1d"
 
-# Mismos tonos que la plantilla del email (verde/rojo de subidas y caídas
-# aparte), para que el gráfico se lea como parte del informe.
-_PALETTE = ["#2962ff", "#089981", "#f23645", "#f5a623", "#7c8a9e", "#ab47bc", "#131722"]
-_TEXT = "#131722"
-_MUTED = "#787b86"
-_GRID = "#e0e3eb"
-
-# Estilo propio y explícito: no hereda el tema global de seaborn que fija
-# ``analysis`` al importarse.
+# Colores de marca comunes (core.charts): las series siguen PALETTE (rojo,
+# negro, grises) y el tema claro sale de MPL_RC. Encima, unos ajustes propios
+# del gráfico pequeño del email. Se aplican con rc_context, así que no se
+# hereda ni se modifica el estado global de matplotlib.
 _STYLE = {
+    **MPL_RC,
     "font.family": "DejaVu Sans",
     "font.size": 9,
-    "axes.facecolor": "#ffffff",
-    "figure.facecolor": "#ffffff",
-    "axes.edgecolor": _GRID,
-    "axes.labelcolor": _MUTED,
-    "axes.grid": True,
-    "grid.color": _GRID,
+    "axes.labelcolor": MUTED,
     "grid.linewidth": 0.6,
-    "xtick.color": _MUTED,
-    "ytick.color": _MUTED,
     "axes.spines.top": False,
     "axes.spines.right": False,
 }
@@ -78,11 +68,17 @@ def render_watchlist_performance(watchlist: Watchlist) -> bytes | None:
         fig, ax = plt.subplots(figsize=(6.4, 3.3), dpi=150)
         try:
             for i, (name, dates, pct) in enumerate(series):
-                color = _PALETTE[i % len(_PALETTE)]
-                ax.plot(dates, pct, color=color, linewidth=1.6, label=f"{name}  {pct[-1]:+.1f}%")
-                ax.scatter(dates[-1], pct[-1], color=color, s=12, zorder=3)
+                color = PALETTE[i % len(PALETTE)]
+                # La segunda mitad de PALETTE repite tonos parecidos (rojos,
+                # grises): va discontinua para distinguirla en la leyenda.
+                linestyle = "-" if i % len(PALETTE) < 3 else (0, (4, 1.5))
+                ax.plot(
+                    dates, pct, color=color, linewidth=1.6, linestyle=linestyle, label=f"{name}  {pct[-1]:+.1f}%"
+                )
+                # El punto final marca con UP/DOWN si el mes acaba en positivo o no.
+                ax.scatter(dates[-1], pct[-1], color=UP if pct[-1] >= 0 else DOWN, s=14, zorder=3)
 
-            ax.axhline(0, color=_MUTED, linewidth=0.8, linestyle="--")
+            ax.axhline(0, color=MUTED, linewidth=0.8, linestyle="--")
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:+.0f}%"))
             ax.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=6))
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m"))
@@ -91,15 +87,15 @@ def render_watchlist_performance(watchlist: Watchlist) -> bytes | None:
                 loc="left",
                 fontsize=10,
                 fontweight="bold",
-                color=_TEXT,
+                color=INK,
             )
             ax.legend(
                 loc="upper left",
                 bbox_to_anchor=(1.01, 1),
                 frameon=False,
                 fontsize=8,
-                labelcolor=_TEXT,
-                handlelength=1.2,
+                labelcolor=INK,
+                handlelength=2,
             )
             fig.tight_layout()
 

@@ -18,11 +18,13 @@
   const layers = document.querySelectorAll(".fx-layer");
   if (!layers.length) return;
 
+  // Colores de marca MOAINVEST sobre fondo negro (los de core/charts.py,
+  // aclarados para que se vean sobre el overlay oscuro).
   const COLORS = {
-    accent: "41, 98, 255",
-    up: "38, 166, 154",
-    down: "239, 83, 80",
-    grid: "124, 138, 158",
+    accent: "255, 90, 110", // --brand-bright
+    up: "52, 199, 140", // --up, más claro
+    down: "200, 16, 46", // --brand
+    grid: "230, 228, 223", // --line
   };
   const rgba = (rgb, a) => `rgba(${rgb}, ${a})`;
   const rand = (min, max) => min + Math.random() * (max - min);
@@ -215,7 +217,7 @@
       const finishX = w - cell * 3;
       for (let yy = 0, row = 0; yy < h; yy += cell, row++) {
         for (let c = 0; c < 2; c++) {
-          ctx.fillStyle = rgba("215, 221, 229", (row + c) % 2 ? 0.35 : 0.08);
+          ctx.fillStyle = rgba(COLORS.grid, (row + c) % 2 ? 0.35 : 0.08);
           ctx.fillRect(finishX + c * cell, yy, cell, cell);
         }
       }

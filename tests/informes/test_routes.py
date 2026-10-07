@@ -137,3 +137,22 @@ def test_informes_page_uses_inline_svg_icons_instead_of_emojis(client):
     # Ningún emoji de watchlist dentro del contenido de la página.
     for watchlist in WATCHLISTS:
         assert watchlist.icon not in content
+
+
+def test_informes_page_uses_brand_layout(client):
+    html = client.get("/app/informes/").data
+    for marker in (b'class="informes-hero', b'class="informes-eyebrow"', b"informes-btn", b'id="informes-preview-empty"'):
+        assert marker in html
+    # Pasos del flujo, como en /informe del sitio rojo.
+    for step in ("01 · Watchlists incluidas", "02 · Revisa", "03 · Envía por correo"):
+        assert step.encode() in html
+
+
+def test_report_preview_uses_brand_colors(client, monkeypatch):
+    monkeypatch.setattr("app.informes.report.market_data.get_quote", fake_quote)
+    html = client.get("/api/report/preview?watchlists=overview").data
+    assert b"background:#171717" in html  # cabecera negra
+    assert b"#c8102e" in html  # rojo de marca
+    # Nada de la paleta azul anterior.
+    for old in (b"#2962ff", b"#131722", b"#f0f3fa", b"#089981", b"#f23645"):
+        assert old not in html

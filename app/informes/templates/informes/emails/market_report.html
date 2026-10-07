@@ -1,7 +1,15 @@
 {#- Plantilla de email: solo tablas y estilos en línea, porque la mayoría de
-    clientes de correo ignoran <style> y el CSS moderno (flex, grid...). -#}
+    clientes de correo ignoran <style> y el CSS moderno (flex, grid...).
+    Colores de la marca MOAINVEST (los mismos que core/static/css/style.css y
+    core/charts.py): negro #171717, rojo #c8102e, sube #0f8a5f, baja #c8102e. -#}
+{%- set sans = "'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" -%}
+{%- set mono = "'Geist Mono',SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace" -%}
+{%- set eyebrow = "font-family:" ~ mono ~ ";font-size:11px;letter-spacing:2px;text-transform:uppercase;" -%}
 {%- macro change_color(q) -%}
-  {%- if q.change_percent is none -%}#787b86{%- elif q.is_up -%}#089981{%- else -%}#f23645{%- endif -%}
+  {%- if q.change_percent is none -%}#6b6b6b{%- elif q.is_up -%}#0f8a5f{%- else -%}#c8102e{%- endif -%}
+{%- endmacro -%}
+{%- macro change_bg(q) -%}
+  {%- if q.change_percent is none -%}#f7f7f5{%- elif q.is_up -%}#e7f5ef{%- else -%}#fbeef0{%- endif -%}
 {%- endmacro -%}
 <!DOCTYPE html>
 <html lang="es">
@@ -10,43 +18,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ subject }}</title>
 </head>
-<body style="margin:0;padding:0;background:#f0f3fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#131722;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f3fa;">
+<body style="margin:0;padding:0;background:#f7f7f5;font-family:{{ sans }};color:#171717;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f7f5;">
     <tr>
       <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border-radius:8px;overflow:hidden;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e6e4df;border-radius:16px;overflow:hidden;">
 
           <tr>
-            <td style="background:#131722;padding:24px;color:#ffffff;">
-              <div style="font-size:20px;font-weight:700;">📈 {{ site_name }} · Informe de mercado</div>
-              <div style="font-size:13px;color:#b2b5be;margin-top:4px;">
+            <td style="background:#c8102e;height:4px;line-height:4px;font-size:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="background:#171717;padding:28px 24px 26px;color:#ffffff;">
+              <div style="{{ eyebrow }}color:#ff5a6e;">Informe de mercado</div>
+              <div style="font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-0.5px;margin-top:10px;color:#ffffff;">
+                {{ site_name }}<span style="color:#ff5a6e;">.</span>
+              </div>
+              <div style="font-size:13px;color:#a3a3a3;margin-top:8px;">
                 Generado el {{ generated_at.strftime('%d/%m/%Y a las %H:%M') }} UTC
               </div>
             </td>
           </tr>
 
           <tr>
-            <td style="padding:20px 24px 8px;">
+            <td style="padding:22px 24px 8px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="center" style="padding:12px;background:#f8f9fd;border-radius:6px;">
-                    <div style="font-size:22px;font-weight:700;">{{ summary.total }}</div>
-                    <div style="font-size:12px;color:#787b86;">Activos</div>
+                  <td align="center" style="padding:14px 8px;background:#ffffff;border:1px solid #e6e4df;border-radius:12px;">
+                    <div style="font-size:26px;font-weight:700;color:#171717;">{{ summary.total }}</div>
+                    <div style="{{ eyebrow }}font-size:10px;color:#6b6b6b;margin-top:4px;">Activos</div>
                   </td>
                   <td width="8"></td>
-                  <td align="center" style="padding:12px;background:#f8f9fd;border-radius:6px;">
-                    <div style="font-size:22px;font-weight:700;color:#089981;">{{ summary.up }}</div>
-                    <div style="font-size:12px;color:#787b86;">Al alza</div>
+                  <td align="center" style="padding:14px 8px;background:#ffffff;border:1px solid #e6e4df;border-radius:12px;">
+                    <div style="font-size:26px;font-weight:700;color:#0f8a5f;">{{ summary.up }}</div>
+                    <div style="{{ eyebrow }}font-size:10px;color:#6b6b6b;margin-top:4px;">Al alza</div>
                   </td>
                   <td width="8"></td>
-                  <td align="center" style="padding:12px;background:#f8f9fd;border-radius:6px;">
-                    <div style="font-size:22px;font-weight:700;color:#f23645;">{{ summary.down }}</div>
-                    <div style="font-size:12px;color:#787b86;">A la baja</div>
+                  <td align="center" style="padding:14px 8px;background:#ffffff;border:1px solid #e6e4df;border-radius:12px;">
+                    <div style="font-size:26px;font-weight:700;color:#c8102e;">{{ summary.down }}</div>
+                    <div style="{{ eyebrow }}font-size:10px;color:#6b6b6b;margin-top:4px;">A la baja</div>
                   </td>
                 </tr>
               </table>
               {% if summary.unavailable %}
-              <div style="font-size:12px;color:#787b86;margin-top:8px;">
+              <div style="font-size:12px;color:#6b6b6b;margin-top:10px;">
                 {{ summary.unavailable }} activo(s) sin datos disponibles.
               </div>
               {% endif %}
@@ -55,31 +69,28 @@
 
           {% if gainers or losers %}
           <tr>
-            <td style="padding:12px 24px;">
+            <td style="padding:14px 24px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr valign="top">
-                  <td width="50%" style="padding-right:8px;">
-                    <div style="font-size:13px;font-weight:700;margin-bottom:6px;">🚀 Mayores subidas</div>
-                    {% for row in gainers %}
-                    <div style="font-size:13px;padding:4px 0;border-bottom:1px solid #f0f3fa;">
-                      {{ row.symbol.display_name }}
-                      <span style="float:right;color:#089981;font-weight:600;">{{ row.quote.change_percent | change('%') }}</span>
+                  {% for title, rows, color, bg, arrow in (("Mayores subidas", gainers, "#0f8a5f", "#e7f5ef", "▲"), ("Mayores caídas", losers, "#c8102e", "#fbeef0", "▼")) %}
+                  <td width="50%" style="{{ 'padding-right:8px;' if loop.first else 'padding-left:8px;' }}">
+                    <div style="{{ eyebrow }}color:#6b6b6b;padding-bottom:8px;border-bottom:1px solid #e6e4df;">
+                      <span style="color:{{ color }};">{{ arrow }}</span> {{ title }}
                     </div>
-                    {% else %}
-                    <div style="font-size:13px;color:#787b86;">—</div>
-                    {% endfor %}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+                      {% for row in rows %}
+                      <tr>
+                        <td style="padding:7px 0;border-bottom:1px solid #e6e4df;font-weight:500;">{{ row.symbol.display_name }}</td>
+                        <td align="right" style="padding:7px 0;border-bottom:1px solid #e6e4df;white-space:nowrap;">
+                          <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:{{ bg }};color:{{ color }};font-weight:600;font-size:12px;">{{ row.quote.change_percent | change('%') }}</span>
+                        </td>
+                      </tr>
+                      {% else %}
+                      <tr><td style="padding:7px 0;color:#6b6b6b;">—</td></tr>
+                      {% endfor %}
+                    </table>
                   </td>
-                  <td width="50%" style="padding-left:8px;">
-                    <div style="font-size:13px;font-weight:700;margin-bottom:6px;">📉 Mayores caídas</div>
-                    {% for row in losers %}
-                    <div style="font-size:13px;padding:4px 0;border-bottom:1px solid #f0f3fa;">
-                      {{ row.symbol.display_name }}
-                      <span style="float:right;color:#f23645;font-weight:600;">{{ row.quote.change_percent | change('%') }}</span>
-                    </div>
-                    {% else %}
-                    <div style="font-size:13px;color:#787b86;">—</div>
-                    {% endfor %}
-                  </td>
+                  {% endfor %}
                 </tr>
               </table>
             </td>
@@ -88,36 +99,36 @@
 
           {% for section in sections %}
           <tr>
-            <td style="padding:16px 24px 4px;">
-              <div style="font-size:15px;font-weight:700;margin-bottom:8px;">
-                {{ section.watchlist.icon }} {{ section.watchlist.name }}
+            <td style="padding:20px 24px 6px;">
+              <div style="font-size:17px;font-weight:700;letter-spacing:-0.3px;margin-bottom:12px;padding-left:10px;border-left:3px solid #c8102e;">
+                {{ section.watchlist.name }}
               </div>
               {% if section.chart %}
               <img src="{{ chart_src(section.chart) }}" width="592"
                    alt="Gráfico: variación en el último mes de {{ section.watchlist.name }}"
-                   style="display:block;width:100%;max-width:592px;height:auto;border:0;margin:0 0 12px;">
+                   style="display:block;width:100%;max-width:592px;height:auto;border:1px solid #e6e4df;border-radius:12px;margin:0 0 12px;">
               {% endif %}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
-                <tr style="color:#787b86;text-align:left;">
-                  <th style="padding:6px 4px;border-bottom:1px solid #e0e3eb;font-weight:600;">Activo</th>
-                  <th style="padding:6px 4px;border-bottom:1px solid #e0e3eb;font-weight:600;text-align:right;">Precio</th>
-                  <th style="padding:6px 4px;border-bottom:1px solid #e0e3eb;font-weight:600;text-align:right;">Cambio</th>
-                  <th style="padding:6px 4px;border-bottom:1px solid #e0e3eb;font-weight:600;text-align:right;">%</th>
+                <tr style="color:#6b6b6b;text-align:left;">
+                  <th style="{{ eyebrow }}font-size:10px;padding:8px 4px;border-bottom:1px solid #e6e4df;font-weight:500;">Activo</th>
+                  <th style="{{ eyebrow }}font-size:10px;padding:8px 4px;border-bottom:1px solid #e6e4df;font-weight:500;text-align:right;">Precio</th>
+                  <th style="{{ eyebrow }}font-size:10px;padding:8px 4px;border-bottom:1px solid #e6e4df;font-weight:500;text-align:right;">Cambio</th>
+                  <th style="{{ eyebrow }}font-size:10px;padding:8px 4px;border-bottom:1px solid #e6e4df;font-weight:500;text-align:right;">%</th>
                 </tr>
                 {% for row in section.rows %}
                 <tr>
-                  <td style="padding:6px 4px;border-bottom:1px solid #f0f3fa;">
+                  <td style="padding:8px 4px;border-bottom:1px solid #e6e4df;">
                     <div style="font-weight:600;">{{ row.symbol.display_name }}</div>
-                    <div style="font-size:11px;color:#787b86;">{{ row.symbol.ticker }}</div>
+                    <div style="font-family:{{ mono }};font-size:11px;color:#6b6b6b;">{{ row.symbol.ticker }}</div>
                   </td>
-                  <td style="padding:6px 4px;border-bottom:1px solid #f0f3fa;text-align:right;white-space:nowrap;">
-                    {{ row.quote.price | price }}{% if row.quote.currency and row.quote.price is not none %} <span style="font-size:11px;color:#787b86;">{{ row.quote.currency }}</span>{% endif %}
+                  <td style="padding:8px 4px;border-bottom:1px solid #e6e4df;text-align:right;white-space:nowrap;">
+                    {{ row.quote.price | price }}{% if row.quote.currency and row.quote.price is not none %} <span style="font-size:11px;color:#6b6b6b;">{{ row.quote.currency }}</span>{% endif %}
                   </td>
-                  <td style="padding:6px 4px;border-bottom:1px solid #f0f3fa;text-align:right;white-space:nowrap;color:{{ change_color(row.quote) }};">
+                  <td style="padding:8px 4px;border-bottom:1px solid #e6e4df;text-align:right;white-space:nowrap;color:{{ change_color(row.quote) }};">
                     {{ row.quote.change | change }}
                   </td>
-                  <td style="padding:6px 4px;border-bottom:1px solid #f0f3fa;text-align:right;white-space:nowrap;font-weight:600;color:{{ change_color(row.quote) }};">
-                    {{ row.quote.change_percent | change('%') }}
+                  <td style="padding:8px 4px;border-bottom:1px solid #e6e4df;text-align:right;white-space:nowrap;">
+                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:{{ change_bg(row.quote) }};color:{{ change_color(row.quote) }};font-weight:600;font-size:12px;">{{ row.quote.change_percent | change('%') }}</span>
                   </td>
                 </tr>
                 {% endfor %}
@@ -127,8 +138,8 @@
           {% endfor %}
 
           <tr>
-            <td style="padding:20px 24px;font-size:11px;color:#787b86;">
-              {{ site_name }} · Datos de Yahoo Finance; pueden tener retraso. Variación respecto al cierre anterior.
+            <td style="padding:20px 24px;background:#f7f7f5;border-top:1px solid #e6e4df;font-size:11px;line-height:1.6;color:#6b6b6b;">
+              <span style="font-weight:700;color:#c8102e;">{{ site_name }}</span> · Datos de Yahoo Finance; pueden tener retraso. Variación respecto al cierre anterior.
               Este informe es solo informativo y no constituye asesoramiento financiero.
             </td>
           </tr>
