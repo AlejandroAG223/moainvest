@@ -1,0 +1,82 @@
+{% extends "core/base.html" %}
+
+{% block title %}Retornos esperados (CAPM) · {{ site_name }}{% endblock %}
+
+
+{% block content %}
+<div class="varianza-page" id="capm-page">
+  <header class="varianza-hero" aria-labelledby="capm-title">
+    <p class="varianza-eyebrow"><span class="varianza-eyebrow__rule" aria-hidden="true"></span>CAPM · PyPortfolioOpt</p>
+    <h1 class="varianza-hero__title" id="capm-title">Retornos esperados <span class="varianza-accent">(CAPM)</span>.</h1>
+    <p class="varianza-hero__lead">
+      Retorno esperado anual de cada activo de un sector según el CAPM,
+      R<sub>i</sub> = R<sub>f</sub> + β<sub>i</sub> (E(R<sub>m</sub>) − R<sub>f</sub>). Elegí un sector, un año y el
+      ETF que hace de proxy del mercado.
+    </p>
+  </header>
+
+  <div class="varianza-cards">
+    <section class="varianza-card" aria-labelledby="capm-form-title">
+      <header class="varianza-card__head">
+        <p class="varianza-eyebrow">01 · Parámetros</p>
+        <h2 class="varianza-card__title" id="capm-form-title">Sector, año y mercado</h2>
+        <p class="varianza-header__hint">
+          Cada activo se estima sobre su propio período (columna <em>Desde</em>), alineado a los días
+          hábiles del mercado elegido. La tasa libre de riesgo es el promedio del rendimiento de la
+          letra del Tesoro de EE. UU. a 13 semanas (<code>{{ risk_free_ticker }}</code>,
+          Yahoo Finance) en ese mismo período, anual como E(R<sub>m</sub>).
+        </p>
+      </header>
+
+      <form class="varianza-form" id="capm-form">
+        <select id="sector-select" class="varianza-form__select" aria-label="Sector">
+          {% for sector in sectors %}
+          <option value="{{ sector }}">{{ sector_icons.get(sector, "") }} {{ sector }}</option>
+          {% endfor %}
+        </select>
+        <select id="year-select" class="varianza-form__select" aria-label="Año">
+          {% for year in years %}
+          <option value="{{ year }}">{{ year }}</option>
+          {% endfor %}
+        </select>
+        <select id="market-select" class="varianza-form__select" aria-label="Proxy del mercado">
+          {% for label, ticker in markets.items() %}
+          <option value="{{ ticker }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="varianza-form__btn" id="capm-btn">Calcular</button>
+      </form>
+
+      <p class="varianza-status" id="capm-status" hidden></p>
+
+      <div class="varianza-result" id="capm-result" hidden>
+        <div class="varianza-result__toolbar">
+          <span class="varianza-summary" id="capm-summary"></span>
+        </div>
+        <div class="varianza-table-wrap">
+          <table class="varianza-table" id="capm-table">
+            <thead>
+              <tr>
+                <th>Activo</th>
+                <th>Beta</th>
+                <th>Retorno esperado anual</th>
+                <th>Tasa libre de riesgo</th>
+                <th>Desde</th>
+              </tr>
+            </thead>
+            <tbody id="capm-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="varianza-header__hint">
+        ⚠️ Es una lectura descriptiva de datos históricos, no una recomendación de inversión.
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('capm.static', filename='capm.js') }}"></script>
+{% endblock %}
