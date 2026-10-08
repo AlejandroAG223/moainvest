@@ -4,6 +4,8 @@
  *
  * - Pane 0: la serie principal (velas, línea o área, según el selector).
  * - Pane 1: histograma de volumen.
+ * - Panes 2…: los indicadores técnicos, que añade graficador-indicators.js a
+ *   través de ``window.GraficadorChart`` (definido más abajo).
  * Los datos vienen de /api/candles/<ticker>?range=&interval= (core) y la
  * cabecera de /api/quote/<ticker> y la watchlist del eyebrow de /api/watchlists.
  * Los colores se leen de los tokens de marca de core/static/css/style.css
@@ -157,6 +159,8 @@
     mainSeries = SERIES[type]();
     mainSeries.setData(mainData());
     chart.removeSeries(previous);
+    // La nueva serie se crea la última y se dibujaría encima de las medias móviles.
+    if (typeof mainSeries.setSeriesOrder === "function") mainSeries.setSeriesOrder(0);
   }
 
   // ───────────────────────── Leyenda OHLC ─────────────────────────
@@ -201,6 +205,8 @@
 
   // Cada carga lleva un número; si llega tarde la respuesta de un rango anterior, se ignora.
   let request = 0;
+  let context = null; // {range, interval, candles} de la última carga correcta
+  const dataListeners = [];
   function load(button) {
     const id = ++request;
     intraday = !/^(1d|1wk|1mo)$/.test(button.dataset.interval);
@@ -214,6 +220,8 @@
         volumeSeries.setData(volumeData());
         chart.timeScale().fitContent();
         renderLegend(candles[candles.length - 1]);
+        context = { range: button.dataset.range, interval: button.dataset.interval, candles };
+        dataListeners.forEach((listener) => listener(context));
         showStatus(
           candles.length ? "" : "No hay datos de «" + ticker + "» en Yahoo Finance para este rango. Revisa el ticker.",
           "empty",
@@ -238,6 +246,18 @@
       setSeriesType(button.dataset.seriesType);
     }),
   );
+
+  // Contrato para graficador-indicators.js (se carga después de este fichero).
+  window.GraficadorChart = {
+    root, chart, LC, ticker, THEME, getJSON, withAlpha, fmtNumber, fmtPrice, fmtVolume, escapeHtml,
+    getContext: () => context,
+    // El listener recibe {range, interval, candles} tras cada carga de velas, y
+    // se llama enseguida si ya hay una cargada.
+    onData(listener) {
+      dataListeners.push(listener);
+      if (context) listener(context);
+    },
+  };
 
   load(rangeButtons.find((b) => b.getAttribute("aria-pressed") === "true") || rangeButtons[0]);
 

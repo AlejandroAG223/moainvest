@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% import "core/icons.html" as icons %}
 
 {% block title %}Graficador · {{ site_name }}{% endblock %}
 
@@ -21,7 +22,9 @@
      data-market="{{ market }}"
      data-candles-url="{{ url_for('core_api.candles', ticker='__T__') }}"
      data-quote-url="{{ url_for('core_api.quote', ticker='__T__') }}"
-     data-watchlists-url="{{ url_for('core_api.watchlists') }}">
+     data-watchlists-url="{{ url_for('core_api.watchlists') }}"
+     data-indicators-url="{{ url_for('graficador_api.indicator_catalog') }}"
+     data-compute-url="{{ url_for('graficador_api.compute_indicators', ticker='__T__') }}">
   <header class="graficador__header">
     <div class="graficador__heading">
       <p class="graficador__eyebrow" id="graficador-eyebrow">{{ market }}</p>
@@ -52,6 +55,11 @@
               aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t.label }}</button>
       {% endfor %}
     </div>
+    <button type="button" class="graficador__btn graficador__btn--outline" id="graficador-indicators-btn"
+            aria-haspopup="dialog" aria-controls="gind-picker">
+      {{ icons.icon("activity") }}<span>Indicadores</span>
+      <span class="graficador__count" id="graficador-indicators-count" hidden>0</span>
+    </button>
     {% endif %}
 
     <form class="graficador__search" id="graficador-search" method="get" action="{{ url_for('graficador.index') }}" role="search">
@@ -67,13 +75,53 @@
   <p class="graficador__status graficador__status--error" id="graficador-error" role="alert">{{ error }}</p>
   {% else %}
   <div class="graficador__chart-wrap">
-    <div class="graficador__legend" id="graficador-legend" aria-live="off"></div>
+    <div class="graficador__legend-stack" id="graficador-legend-stack">
+      <div class="graficador__legend" id="graficador-legend" aria-live="off"></div>
+      <div class="gind-list" id="gind-overlay" aria-label="Indicadores sobre el precio"></div>
+    </div>
     <div class="graficador__chart" id="graficador-chart" role="img" aria-label="Gráfico de {{ ticker }}"></div>
+    <div class="gind-panes" id="gind-panes"></div>
+    <p class="gind-toast" id="gind-toast" role="status" hidden></p>
     <div class="graficador__overlay" id="graficador-overlay" hidden>
       <p class="graficador__status" id="graficador-status" role="status"></p>
     </div>
   </div>
-  <p class="graficador__note">Datos de Yahoo Finance. Horas en UTC.</p>
+  <p class="graficador__note">Datos de Yahoo Finance. Horas en UTC. Indicadores calculados con TA-Lib.</p>
+
+  <dialog class="gind-dialog" id="gind-picker" aria-labelledby="gind-picker-title">
+    <div class="gind-dialog__head">
+      <h2 id="gind-picker-title">Indicadores</h2>
+      <button type="button" class="gind-icon-btn" data-gind-close aria-label="Cerrar">{{ icons.icon("x") }}</button>
+    </div>
+    <div class="gind-picker__search">
+      {{ icons.icon("search") }}
+      <input type="search" id="gind-search" placeholder="Buscar: RSI, MACD, Bollinger, media móvil…"
+             aria-label="Buscar indicador" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="gind-picker__cats" id="gind-cats" role="group" aria-label="Categoría"></div>
+    <ul class="gind-picker__list" id="gind-list"></ul>
+    <p class="gind-picker__empty" id="gind-empty" hidden>Ningún indicador coincide con tu búsqueda.</p>
+    <div class="gind-dialog__foot">
+      <p class="gind-dialog__hint" id="gind-hint">Pulsa un indicador para añadirlo. Puedes añadir tantos como quieras, incluso el mismo con distintos parámetros.</p>
+      <button type="button" class="gind-btn gind-btn--ghost" id="gind-clear">Quitar todos</button>
+      <button type="button" class="gind-btn gind-btn--primary" data-gind-close>Listo</button>
+    </div>
+  </dialog>
+
+  <dialog class="gind-dialog gind-dialog--sm" id="gind-settings" aria-labelledby="gind-settings-title">
+    <form method="dialog" id="gind-settings-form">
+      <div class="gind-dialog__head">
+        <h2 id="gind-settings-title">Ajustes</h2>
+        <button type="submit" value="cancel" formnovalidate class="gind-icon-btn" aria-label="Cerrar">{{ icons.icon("x") }}</button>
+      </div>
+      <div class="gind-settings__body" id="gind-settings-body"></div>
+      <div class="gind-dialog__foot">
+        <button type="button" class="gind-btn gind-btn--ghost" id="gind-reset">Valores por defecto</button>
+        <button type="submit" value="cancel" formnovalidate class="gind-btn gind-btn--outline">Cancelar</button>
+        <button type="submit" value="ok" class="gind-btn gind-btn--primary">Aceptar</button>
+      </div>
+    </form>
+  </dialog>
   {% endif %}
 </div>
 {% endblock %}
@@ -81,5 +129,6 @@
 {% block scripts %}
 {% if not error %}
 <script src="{{ url_for('graficador.static', filename='graficador.js') }}"></script>
+<script src="{{ url_for('graficador.static', filename='graficador-indicators.js') }}"></script>
 {% endif %}
 {% endblock %}
