@@ -59,6 +59,7 @@ tests/<app>/         pytest por app
 | `core` | sin páginas; API `/api/watchlists`, `/api/quote/<t>`, `/api/candles/<t>?range=&interval=`, `/api/watchlist/<slug>/quotes`, `POST /api/email/send` | `market_data.py` (yfinance + caché), `watchlists.py`, `email.py` (Resend), `navigation.py` (sidebar), `charts.py` (`PALETTE`) | aporta `core/base.html`, `core/sidebar.html`, `core/icons.html`, `static/css/style.css`, `static/js/app.js` |
 | `moainvest` | `/` (Resumen), `/graficas[/<watchlist>[/<ticker>]]`, `/informe` y el **404 global** (`app_errorhandler`) | — (usa la API de `core` e `informes` desde `static/moainvest.js`) | rojo, Tailwind: `moainvest/base.html` |
 | `varianza` | `/analisis-varianza/`; API `/api/volatility-chart?tickers=&period=` | `analysis.py` | oscuro con sidebar |
+| `graficador` | `/app/graficador/?ticker=`; API `/api/graficador/indicators` y `/api/graficador/<t>/indicators?ind=sma:20` | `indicators.py` (catálogo y cálculo con **TA-Lib**) | oscuro con sidebar; JS en `static/graficador*.js` (lightweight-charts v5) |
 | `quant_stats` | `/quant-stats/` → `fundamentales`, `revision`, `tearsheet`; API `/api/quant/<t>/...png` | `quant.py` | oscuro con sidebar |
 | `informes` | `/informes/`; API `/api/report/preview`, `/api/report/send`, `POST /api/email/send-assets-report` | `report.py`, `report_charts.py`, `media.py` (Cloudinary) | oscuro con sidebar |
 

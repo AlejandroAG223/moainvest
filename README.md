@@ -308,6 +308,46 @@ vez de `addCandlestickSeries(...)`, y los markers con
 `series.setMarkers(...)`. Un test (`tests/graficador/test_routes.py`) comprueba
 que ningún JS propio usa la API de la v4.
 
+#### Indicadores técnicos (TA-Lib)
+
+El botón **Indicadores** del Graficador abre un diálogo, como el de TradingView,
+con **28 indicadores** de [TA-Lib](https://ta-lib.org) (`ta-lib` en
+`pyproject.toml`; el wheel ya incluye la librería C, no hace falta compilar nada),
+buscador sin tildes y cuatro categorías: Tendencia, Momentum, Volatilidad y Volumen.
+
+- Se pueden añadir **1 o N** indicadores, incluso el mismo con distintos
+  parámetros (SMA 20 y SMA 50). Máximo 20 en el gráfico.
+- Los de tendencia (medias móviles, Bollinger, SAR) van **sobre el precio**; el
+  resto, cada uno en **su propio panel** bajo el volumen (panes de
+  lightweight-charts v5). El gráfico crece en alto con cada panel nuevo.
+- Cada indicador tiene su leyenda con los valores bajo el cursor y los botones
+  de **ocultar**, **ajustes** (parámetros y colores) y **quitar**.
+- La lista (con parámetros, colores y visibilidad) se guarda en el navegador
+  (`localStorage`, clave `graficador:indicators:v1`) y se aplica a cualquier ticker.
+- Se calculan en el servidor sobre **más historia que la visible** (5 años en
+  diario, 1 mes en intradía, etc.; ver `warmup_range`), así que una SMA(200)
+  ya tiene valor en la primera vela del gráfico, como en TradingView.
+
+| Ruta | Contenido |
+|---|---|
+| `GET /api/graficador/indicators` | Catálogo: parámetros (con límites), salidas, categoría y paleta |
+| `GET /api/graficador/<ticker>/indicators?range=6mo&interval=1d&ind=sma:20&ind=macd:12,26,9` | `{"time": [...], "indicators": [{"spec", "outputs": {clave: [...]}}]}`; `null` mientras el indicador se calienta |
+
+`ind` es `<id>:<parámetros por orden>`; los que falten toman su valor por
+defecto. Una petición inválida (indicador desconocido, parámetro fuera de
+rango, más de 25) responde 400 sin descargar nada de Yahoo.
+
+**Añadir un indicador**: una entrada más en `INDICATORS` de
+`app/graficador/indicators.py` (módulo sin Flask), con sus `Param` (y límites),
+sus `Output` (`line`, `dashed`, `dots` o `histogram`), si es `overlay`, y la
+función que llama a TA-Lib. Aparece solo en el diálogo y en la API; un test
+comprueba que las claves que devuelve coinciden con las declaradas.
+
+El JS está en `app/graficador/static/graficador-indicators.js` y usa
+`window.GraficadorChart`, que expone `graficador.js` (gráfico, tema y un
+`onData` que avisa cuando llegan velas). Sus estilos llevan el prefijo `gind-`.
+No hay patrones de velas, Ichimoku, Supertrend ni VWAP: TA-Lib no los trae.
+
 ### Estética de Informes y Análisis de varianza
 
 `/app/informes/` y `/app/analisis-varianza/` siguen la marca del sitio rojo
