@@ -1,6 +1,6 @@
-{% extends "core/base.html" %}
+{% extends "quant_stats/_base.html" %}
 
-{% block title %}QUANT STATS · Revisión analítica {{ ticker }} · {{ site_name }}{% endblock %}
+{% block title %}Revisión analítica {{ ticker }} · Quant stats · {{ site_name }}{% endblock %}
 
 {% macro plot_src(for_period) -%}
   {{ url_for('quant_stats_api.quant_plot', ticker=ticker, slug=plot.slug, period=for_period,
@@ -13,42 +13,44 @@
              compare=compare, benchmark=benchmark, window=window) }}
 {%- endmacro %}
 
-{% block content %}
-<div class="varianza-page">
-  <header class="varianza-header">
-    <h1>Revisión analítica · {{ ticker }}</h1>
-    <p class="varianza-header__hint">
-      <strong>{{ asset_name }}</strong> en comparación: contra un benchmark, entre dos períodos o entre sus
-      reportes de resultados. Las gráficas y métricas del activo por sí solo están en
-      <a href="{{ url_for('quant_stats.fundamentales', ticker=ticker, period=period) }}">Gráficas y fundamentales estadísticos</a>.
-    </p>
-  </header>
+{% block hero_eyebrow %}Revisión analítica{% endblock %}
 
+{% block hero_lead %}
+  El activo en comparación: contra un benchmark, entre dos períodos o entre sus reportes de resultados. Las
+  gráficas y métricas del activo por sí solo están en
+  <a href="{{ url_for('quant_stats.fundamentales', ticker=ticker, period=period) }}">Gráficas y fundamentales estadísticos</a>.
+{% endblock %}
+
+{% block hero_extra %}
   {% with keep={"mode": mode, "chart": plot.slug if plot else None, "benchmark": benchmark, "compare": compare, "window": window} %}
   {% include "quant_stats/_asset_form.html" %}
   {% endwith %}
+{% endblock %}
 
-  <nav class="quant-modules revision-modes">
+{% block page %}
+  <nav class="qs-tabs" aria-label="Modos de revisión">
     {% for value, label in modes.items() %}
-    <a class="{% if value == mode %}is-active{% endif %}"
+    <a class="qs-tabs__link{% if value == mode %} is-active{% endif %}" {% if value == mode %}aria-current="page"{% endif %}
        href="{{ url_for('quant_stats.revision', ticker=ticker, mode=value, period=period) }}">{{ label }}</a>
     {% endfor %}
   </nav>
 
   {% if mode == "earnings" %}
-  <section class="volatility-section">
-    <h2>Últimos {{ earnings_count }} earnings</h2>
+  <section class="qs-section">
+    <div class="qs-section__head">
+      <h2 class="qs-section__title">Últimos {{ earnings_count }} earnings</h2>
+    </div>
     {% if earnings %}
-    <p class="varianza-header__hint">
+    <p class="qs-hint">
       Cada reporte frente al anterior: distancia en días, variación del EPS reportado y variación del precio
       de cierre (primera sesión tras cada reporte).
     </p>
-    <div class="volatility-chart-wrap">
+    <figure class="qs-chart">
       <img src="{{ url_for('quant_stats_api.quant_earnings', ticker=ticker, count=earnings_count) }}"
            alt="Comparación de los últimos reportes de resultados de {{ ticker }}" loading="lazy">
-    </div>
-    <div class="varianza-table-wrap">
-      <table class="varianza-table">
+    </figure>
+    <div class="qs-card qs-card--scroll">
+      <table class="qs-table qs-table--wide">
         <thead>
           <tr>
             <th>Fecha</th>
@@ -80,108 +82,112 @@
       </table>
     </div>
     {% else %}
-    <p class="varianza-status is-error">
+    <p class="qs-status is-error">
       No hay datos de earnings para {{ ticker }} (los índices, ETFs, divisas y criptos no publican resultados).
     </p>
     {% endif %}
   </section>
 
   {% else %}
-  <form class="varianza-form revision-form" method="get">
-    <input type="hidden" name="ticker" value="{{ ticker }}">
-    <input type="hidden" name="mode" value="{{ mode }}">
-    <input type="hidden" name="period" value="{{ period }}">
-    <label class="revision-form__field">
-      <span>Gráfica</span>
-      <select name="chart" class="varianza-form__select" onchange="this.form.submit()">
-        {% for p in plots %}
-        <option value="{{ p.slug }}" {% if p.slug == plot.slug %}selected{% endif %}>{{ p.label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% if mode == "benchmark" %}
-    <label class="revision-form__field">
-      <span>Benchmark (cualquier ticker)</span>
-      <input class="varianza-form__input" name="benchmark" value="{{ benchmark }}" list="quant-benchmarks"
-             autocomplete="off" spellcheck="false" required
-             pattern="[A-Za-z0-9\^][A-Za-z0-9.\-=\^]{0,14}" onchange="this.form.submit()">
-      <datalist id="quant-benchmarks">
-        {% for value, label in benchmarks.items() %}
-        <option value="{{ value }}">{{ label }}</option>
-        {% endfor %}
-        {% for value, label in known_assets %}
-        <option value="{{ value }}">{{ label }}</option>
-        {% endfor %}
-      </datalist>
-    </label>
-    {% else %}
-    <label class="revision-form__field">
-      <span>Comparar con</span>
-      <select name="compare" class="varianza-form__select" onchange="this.form.submit()">
-        {% for value, label in periods.items() if value != period %}
-        <option value="{{ value }}" {% if value == compare %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% endif %}
-    {% if plot.rolling %}
-    <label class="revision-form__field">
-      <span>Ventana móvil</span>
-      <select name="window" class="varianza-form__select" onchange="this.form.submit()">
-        {% for value, label in windows.items() %}
-        <option value="{{ value }}" {% if value == window %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% else %}
-    <input type="hidden" name="window" value="{{ window }}">
-    {% endif %}
-    <button type="submit" class="varianza-form__btn">Aplicar</button>
-  </form>
+  <section class="qs-section qs-section--flush">
+    <form class="qs-form qs-form--panel" method="get">
+      <input type="hidden" name="ticker" value="{{ ticker }}">
+      <input type="hidden" name="mode" value="{{ mode }}">
+      <input type="hidden" name="period" value="{{ period }}">
+      <label class="qs-field">
+        <span class="qs-field__label">Gráfica</span>
+        <select name="chart" class="qs-select" onchange="this.form.submit()">
+          {% for p in plots %}
+          <option value="{{ p.slug }}" {% if p.slug == plot.slug %}selected{% endif %}>{{ p.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% if mode == "benchmark" %}
+      <label class="qs-field qs-field--ticker">
+        <span class="qs-field__label">Benchmark (cualquier ticker)</span>
+        <input class="qs-input qs-input--ticker" name="benchmark" value="{{ benchmark }}" list="quant-benchmarks"
+               autocomplete="off" spellcheck="false" required
+               pattern="[A-Za-z0-9\^][A-Za-z0-9.\-=\^]{0,14}" onchange="this.form.submit()">
+        <datalist id="quant-benchmarks">
+          {% for value, label in benchmarks.items() %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+          {% for value, label in known_assets %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </datalist>
+      </label>
+      {% else %}
+      <label class="qs-field">
+        <span class="qs-field__label">Comparar con</span>
+        <select name="compare" class="qs-select" onchange="this.form.submit()">
+          {% for value, label in periods.items() if value != period %}
+          <option value="{{ value }}" {% if value == compare %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      {% if plot.rolling %}
+      <label class="qs-field">
+        <span class="qs-field__label">Ventana móvil</span>
+        <select name="window" class="qs-select" onchange="this.form.submit()">
+          {% for value, label in windows.items() %}
+          <option value="{{ value }}" {% if value == window %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% else %}
+      <input type="hidden" name="window" value="{{ window }}">
+      {% endif %}
+      <button type="submit" class="qs-btn">Aplicar</button>
+    </form>
 
-  <div class="revision-nav">
-    <a class="varianza-form__btn varianza-form__btn--secondary" href="{{ revision_url(previous_plot.slug) }}">← {{ previous_plot.label }}</a>
-    <div class="revision-nav__current">
-      <strong>{{ plot.label }}</strong>
-      <span class="varianza-header__hint">{{ plot.description }}</span>
+    <div class="qs-stepper">
+      <a class="qs-btn qs-btn--ghost qs-stepper__prev" href="{{ revision_url(previous_plot.slug) }}"><span aria-hidden="true">←</span> {{ previous_plot.label }}</a>
+      <div class="qs-stepper__current">
+        <strong>{{ plot.label }}</strong>
+        <span>{{ plot.description }}</span>
+      </div>
+      <a class="qs-btn qs-btn--ghost qs-stepper__next" href="{{ revision_url(next_plot.slug) }}">{{ next_plot.label }} <span aria-hidden="true">→</span></a>
     </div>
-    <a class="varianza-form__btn varianza-form__btn--secondary" href="{{ revision_url(next_plot.slug) }}">{{ next_plot.label }} →</a>
-  </div>
 
-  <div class="revision-charts {% if mode == 'periodos' %}is-compare{% endif %}">
-    <figure class="volatility-chart-wrap revision-chart">
-      <figcaption>
-        {% if mode == "benchmark" %}{{ ticker }} vs. {{ benchmark }} · {{ periods[period] }}{% else %}{{ periods[period] }}{% endif %}
-      </figcaption>
-      <a href="{{ plot_src(period) }}" target="_blank" title="Abrir a tamaño completo">
-        <img src="{{ plot_src(period) }}" alt="{{ plot.label }} de {{ ticker }} · {{ periods[period] }}">
-      </a>
-    </figure>
-    {% if mode == "periodos" %}
-    <figure class="volatility-chart-wrap revision-chart">
-      <figcaption>{{ periods[compare] }}</figcaption>
-      <a href="{{ plot_src(compare) }}" target="_blank" title="Abrir a tamaño completo">
-        <img src="{{ plot_src(compare) }}" alt="{{ plot.label }} de {{ ticker }} · {{ periods[compare] }}">
-      </a>
-    </figure>
-    {% endif %}
-  </div>
+    <div class="qs-charts {% if mode == 'periodos' %}is-compare{% endif %}">
+      <figure class="qs-chart">
+        <figcaption>
+          {% if mode == "benchmark" %}{{ ticker }} vs. {{ benchmark }} · {{ periods[period] }}{% else %}{{ periods[period] }}{% endif %}
+        </figcaption>
+        <a href="{{ plot_src(period) }}" target="_blank" title="Abrir a tamaño completo">
+          <img src="{{ plot_src(period) }}" alt="{{ plot.label }} de {{ ticker }} · {{ periods[period] }}">
+        </a>
+      </figure>
+      {% if mode == "periodos" %}
+      <figure class="qs-chart">
+        <figcaption>{{ periods[compare] }}</figcaption>
+        <a href="{{ plot_src(compare) }}" target="_blank" title="Abrir a tamaño completo">
+          <img src="{{ plot_src(compare) }}" alt="{{ plot.label }} de {{ ticker }} · {{ periods[compare] }}">
+        </a>
+      </figure>
+      {% endif %}
+    </div>
 
-  <div class="revision-chips">
-    {% for p in plots %}
-    <a class="revision-chip {% if p.slug == plot.slug %}is-active{% endif %}" href="{{ revision_url(p.slug) }}">{{ p.label }}</a>
-    {% endfor %}
-  </div>
+    <div class="qs-chips">
+      {% for p in plots %}
+      <a class="qs-chip {% if p.slug == plot.slug %}is-active{% endif %}" href="{{ revision_url(p.slug) }}">{{ p.label }}</a>
+      {% endfor %}
+    </div>
+  </section>
 
   {% if mode == "benchmark" %}
-  <section class="volatility-section">
-    <h2>Métricas: {{ ticker }} vs. {{ benchmark }}</h2>
-    <p class="varianza-header__hint">{{ asset_name }} frente a {{ benchmark_name }}, sobre las mismas sesiones.</p>
+  <section class="qs-section">
+    <div class="qs-section__head">
+      <h2 class="qs-section__title">Métricas: {{ ticker }} vs. {{ benchmark }}</h2>
+    </div>
+    <p class="qs-hint">{{ asset_name }} frente a {{ benchmark_name }}, sobre las mismas sesiones.</p>
     {% if comparison %}
-    <div class="stat-groups stat-groups--compare">
+    <div class="qs-tables qs-tables--compare">
       {% for title, rows in comparison %}
-      <div class="varianza-table-wrap">
-        <table class="varianza-table">
+      <div class="qs-card">
+        <table class="qs-table">
           <thead><tr><th>{{ title }}</th><th>{{ ticker }}</th><th>{{ benchmark }}</th></tr></thead>
           <tbody>
             {% for row in rows %}
@@ -197,17 +203,16 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="varianza-status is-error">No se pudieron descargar precios de {{ ticker }} o de {{ benchmark }}.</p>
+    <p class="qs-status is-error">No se pudieron descargar precios de {{ ticker }} o de {{ benchmark }}.</p>
     {% endif %}
-    <form class="varianza-form" method="get" action="{{ url_for('quant_stats.tearsheet') }}" target="_blank">
+    <form class="qs-actions" method="get" action="{{ url_for('quant_stats.tearsheet') }}" target="_blank">
       <input type="hidden" name="ticker" value="{{ ticker }}">
       <input type="hidden" name="period" value="{{ period }}">
       <input type="hidden" name="benchmark" value="{{ benchmark }}">
-      <button type="submit" class="varianza-form__btn">Tearsheet {{ ticker }} vs. {{ benchmark }}</button>
-      <button type="submit" name="download" value="1" class="varianza-form__btn varianza-form__btn--secondary">Descargar HTML</button>
+      <button type="submit" class="qs-btn">Tearsheet {{ ticker }} vs. {{ benchmark }}</button>
+      <button type="submit" name="download" value="1" class="qs-btn qs-btn--ghost">Descargar HTML</button>
     </form>
   </section>
   {% endif %}
   {% endif %}
-</div>
 {% endblock %}

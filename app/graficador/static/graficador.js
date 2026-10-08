@@ -1,0 +1,274 @@
+/*
+ * Graficador: gráfico de un ticker de Yahoo Finance con lightweight-charts v5
+ * (API ``addSeries`` y panes), sin framework.
+ *
+ * - Pane 0: la serie principal (velas, línea o área, según el selector).
+ * - Pane 1: histograma de volumen.
+ * Los datos vienen de /api/candles/<ticker>?range=&interval= (core) y la
+ * cabecera de /api/quote/<ticker> y la watchlist del eyebrow de /api/watchlists.
+ * Los colores se leen de los tokens de marca de core/static/css/style.css
+ * (tema claro MOAINVEST, como el gráfico rojo de moainvest.js); los fallbacks
+ * son esos mismos valores por si la hoja no ha cargado.
+ */
+(function () {
+  "use strict";
+
+  const root = document.getElementById("graficador");
+  const LC = window.LightweightCharts;
+  if (!root || !root.dataset.ticker || !LC) return;
+
+  const ticker = root.dataset.ticker;
+  const apiUrl = (template) => template.replace("__T__", encodeURIComponent(ticker));
+  const candlesUrl = apiUrl(root.dataset.candlesUrl);
+  const quoteUrl = apiUrl(root.dataset.quoteUrl);
+
+  const overlayEl = document.getElementById("graficador-overlay");
+  const statusEl = document.getElementById("graficador-status");
+  const legendEl = document.getElementById("graficador-legend");
+  const nameEl = document.getElementById("graficador-name");
+  const symbolEl = document.getElementById("graficador-symbol");
+  const eyebrowEl = document.getElementById("graficador-eyebrow");
+  const priceEl = document.getElementById("graficador-price");
+  const currencyEl = document.getElementById("graficador-currency");
+  const changeEl = document.getElementById("graficador-change");
+  const rangeButtons = Array.from(root.querySelectorAll("[data-range]"));
+  const typeButtons = Array.from(root.querySelectorAll("[data-series-type]"));
+
+  // ───────────────────────── Tema ─────────────────────────
+  const css = getComputedStyle(document.documentElement);
+  const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+  const THEME = {
+    bg: token("--paper", "#ffffff"),
+    line: token("--line", "#e6e4df"),
+    text: token("--muted", "#6b6b6b"),
+    ink: token("--ink", "#171717"),
+    brand: token("--brand", "#c8102e"),
+    brandSoft: token("--brand-soft", "#fbeef0"),
+    up: token("--up", "#0f8a5f"),
+    down: token("--down", "#c8102e"),
+    font: token("--font-mono", '"Geist Mono", ui-monospace, monospace'),
+  };
+
+  function withAlpha(hex, alpha) {
+    const n = parseInt(hex.replace("#", ""), 16);
+    return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + alpha + ")";
+  }
+
+  // ───────────────────────── Formato ─────────────────────────
+  const fmtNumber = (value, digits) =>
+    value === null || value === undefined
+      ? "—"
+      : value.toLocaleString("es-ES", { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: "always" });
+  const fmtPrice = (value) => fmtNumber(value, Math.abs(value) < 1 ? 4 : 2);
+
+  function fmtVolume(value) {
+    if (!value) return "—";
+    const units = [[1e9, " B"], [1e6, " M"], [1e3, " K"]];
+    for (const [size, suffix] of units) {
+      if (value >= size) return fmtNumber(value / size, 2) + suffix;
+    }
+    return fmtNumber(value, 0);
+  }
+
+  let intraday = false;
+  function fmtTime(time) {
+    const options = { timeZone: "UTC", day: "2-digit", month: "short", year: "numeric" };
+    if (intraday) Object.assign(options, { hour: "2-digit", minute: "2-digit" });
+    return new Date(time * 1000).toLocaleString("es-ES", options);
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ───────────────────────── Gráfico ─────────────────────────
+  const chart = LC.createChart(document.getElementById("graficador-chart"), {
+    autoSize: true,
+    layout: {
+      background: { type: LC.ColorType.Solid, color: THEME.bg },
+      textColor: THEME.text,
+      // Geist Mono en ejes y etiquetas, como el gráfico rojo: cifras en mono.
+      fontFamily: THEME.font,
+      fontSize: 11,
+      panes: { separatorColor: THEME.line, separatorHoverColor: withAlpha(THEME.brand, 0.12), enableResize: true },
+    },
+    grid: { vertLines: { color: withAlpha(THEME.line, 0.55) }, horzLines: { color: withAlpha(THEME.line, 0.55) } },
+    rightPriceScale: { borderColor: THEME.line },
+    timeScale: { borderColor: THEME.line, timeVisible: true, secondsVisible: false },
+    crosshair: {
+      mode: LC.CrosshairMode.Normal,
+      vertLine: { color: withAlpha(THEME.ink, 0.45), labelBackgroundColor: THEME.ink },
+      horzLine: { color: withAlpha(THEME.ink, 0.45), labelBackgroundColor: THEME.ink },
+    },
+    localization: { locale: "es-ES" },
+  });
+
+  const SERIES = {
+    candles: () =>
+      chart.addSeries(
+        LC.CandlestickSeries,
+        { upColor: THEME.up, downColor: THEME.down, borderVisible: false, wickUpColor: THEME.up, wickDownColor: THEME.down },
+        0,
+      ),
+    line: () => chart.addSeries(LC.LineSeries, { color: THEME.brand, lineWidth: 2 }, 0),
+    // Degradado del rojo de marca al brand-soft, casi transparente abajo.
+    area: () =>
+      chart.addSeries(
+        LC.AreaSeries,
+        { lineColor: THEME.brand, topColor: withAlpha(THEME.brand, 0.22), bottomColor: withAlpha(THEME.brandSoft, 0.1), lineWidth: 2 },
+        0,
+      ),
+  };
+
+  let seriesType = (typeButtons.find((b) => b.getAttribute("aria-pressed") === "true") || typeButtons[0]).dataset.seriesType;
+  let mainSeries = SERIES[seriesType]();
+  const volumeSeries = chart.addSeries(
+    LC.HistogramSeries,
+    { priceFormat: { type: "volume" }, priceLineVisible: false, lastValueVisible: false },
+    1,
+  );
+  // El pane de precios ocupa 3/4 de la altura y el de volumen 1/4.
+  chart.panes()[0].setStretchFactor(3);
+  chart.panes()[1].setStretchFactor(1);
+
+  let candles = [];
+  let byTime = new Map();
+
+  function mainData() {
+    if (seriesType === "candles") return candles;
+    return candles.map((c) => ({ time: c.time, value: c.close }));
+  }
+
+  function volumeData() {
+    return candles.map((c) => ({
+      time: c.time,
+      value: c.volume || 0,
+      color: withAlpha(c.close >= c.open ? THEME.up : THEME.down, 0.3),
+    }));
+  }
+
+  function setSeriesType(type) {
+    if (type === seriesType || !SERIES[type]) return;
+    // Se crea la nueva antes de quitar la anterior para que el pane 0 nunca quede vacío.
+    const previous = mainSeries;
+    seriesType = type;
+    mainSeries = SERIES[type]();
+    mainSeries.setData(mainData());
+    chart.removeSeries(previous);
+  }
+
+  // ───────────────────────── Leyenda OHLC ─────────────────────────
+  function renderLegend(candle) {
+    if (!candle) {
+      legendEl.innerHTML = "";
+      return;
+    }
+    const tone = candle.close >= candle.open ? "is-up" : "is-down";
+    const item = (label, value) => '<span class="' + tone + '">' + label + " <b>" + value + "</b></span>";
+    legendEl.innerHTML =
+      '<span class="graficador__legend-time">' + escapeHtml(ticker) + " · " + fmtTime(candle.time) + "</span>" +
+      item("O", fmtPrice(candle.open)) +
+      item("H", fmtPrice(candle.high)) +
+      item("L", fmtPrice(candle.low)) +
+      item("C", fmtPrice(candle.close)) +
+      item("Vol", fmtVolume(candle.volume));
+  }
+
+  chart.subscribeCrosshairMove((param) => {
+    const candle = param && param.time !== undefined ? byTime.get(param.time) : null;
+    renderLegend(candle || candles[candles.length - 1]);
+  });
+
+  // ───────────────────────── Estados ─────────────────────────
+  // Estado sobre el gráfico (tarjeta blanca): "loading", "error" o "empty".
+  function showStatus(text, state) {
+    overlayEl.hidden = !text;
+    statusEl.textContent = text || "";
+    statusEl.classList.toggle("graficador__status--loading", state === "loading");
+    statusEl.classList.toggle("graficador__status--error", state === "error");
+  }
+
+  function getJSON(url) {
+    return fetch(url, { headers: { Accept: "application/json" } }).then((response) =>
+      response.json().then((data) => {
+        if (!response.ok) throw new Error(data.error || "HTTP " + response.status);
+        return data;
+      }),
+    );
+  }
+
+  // Cada carga lleva un número; si llega tarde la respuesta de un rango anterior, se ignora.
+  let request = 0;
+  function load(button) {
+    const id = ++request;
+    intraday = !/^(1d|1wk|1mo)$/.test(button.dataset.interval);
+    showStatus("Cargando datos de Yahoo Finance…", "loading");
+    getJSON(candlesUrl + "?range=" + button.dataset.range + "&interval=" + button.dataset.interval)
+      .then((data) => {
+        if (id !== request) return;
+        candles = data;
+        byTime = new Map(candles.map((c) => [c.time, c]));
+        mainSeries.setData(mainData());
+        volumeSeries.setData(volumeData());
+        chart.timeScale().fitContent();
+        renderLegend(candles[candles.length - 1]);
+        showStatus(
+          candles.length ? "" : "No hay datos de «" + ticker + "» en Yahoo Finance para este rango. Revisa el ticker.",
+          "empty",
+        );
+      })
+      .catch(() => id === request && showStatus("No pudimos cargar el gráfico. Inténtalo de nuevo.", "error"));
+  }
+
+  function press(buttons, active) {
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(b === active)));
+  }
+
+  rangeButtons.forEach((button) =>
+    button.addEventListener("click", () => {
+      press(rangeButtons, button);
+      load(button);
+    }),
+  );
+  typeButtons.forEach((button) =>
+    button.addEventListener("click", () => {
+      press(typeButtons, button);
+      setSeriesType(button.dataset.seriesType);
+    }),
+  );
+
+  load(rangeButtons.find((b) => b.getAttribute("aria-pressed") === "true") || rangeButtons[0]);
+
+  // Geist Mono llega de Google Fonts: al cargar, se vuelve a pintar el canvas con ella.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => chart.applyOptions({ layout: { fontFamily: THEME.font } }));
+  }
+
+  // ───────────────────────── Cabecera (precio actual) ─────────────────────────
+  getJSON(quoteUrl)
+    .then((q) => {
+      if (q.name && q.name !== ticker) {
+        nameEl.textContent = q.name;
+        symbolEl.hidden = false;
+      }
+      if (q.price === null || q.price === undefined) return;
+      priceEl.textContent = fmtPrice(q.price);
+      currencyEl.textContent = q.currency || "";
+      if (q.change === null || q.change === undefined) return;
+      const sign = q.change >= 0 ? "+" : "";
+      changeEl.dataset.tone = q.change >= 0 ? "up" : "down";
+      changeEl.textContent =
+        sign + fmtPrice(q.change) + (q.change_percent === null ? "" : " (" + sign + fmtNumber(q.change_percent, 2) + " %)");
+    })
+    .catch(() => {});
+
+  // ───────────────────────── Eyebrow (watchlist · mercado) ─────────────────────────
+  getJSON(root.dataset.watchlistsUrl)
+    .then((watchlists) => {
+      const list = watchlists.find((w) => w.symbols.some((s) => s.ticker === ticker));
+      if (list) eyebrowEl.textContent = list.name + " · " + root.dataset.market;
+    })
+    .catch(() => {});
+})();

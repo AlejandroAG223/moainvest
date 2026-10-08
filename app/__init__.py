@@ -30,6 +30,7 @@ INSTALLED_APPS = (
     "varianza",
     "quant_stats",
     "informes",
+    "graficador",
 )
 
 

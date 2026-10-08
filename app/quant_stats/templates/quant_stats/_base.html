@@ -1,0 +1,21 @@
+{# Base de las páginas de QUANT STATS: layout con sidebar (core/base.html) con
+   la estética del sitio rojo MOAINVEST (Geist, blancos, rojos y negros).
+   Las páginas rellenan ``hero_eyebrow``, ``hero_lead``, ``hero_extra`` y ``page``. #}
+{% extends "core/base.html" %}
+
+{% block content %}
+<header class="qs-hero" aria-labelledby="qs-title">
+  <div class="qs-hero__inner">
+    <p class="qs-eyebrow"><span class="qs-eyebrow__rule" aria-hidden="true"></span>Quant stats · {% block hero_eyebrow %}{% endblock %}</p>
+    <h1 id="qs-title" class="qs-hero__title">
+      <span class="qs-hero__ticker">{{ ticker }}</span>
+      <span class="qs-hero__name">{{ asset_name }}</span>
+    </h1>
+    <p class="qs-hero__lead">{% block hero_lead %}{% endblock %}</p>
+    {% block hero_extra %}{% endblock %}
+  </div>
+</header>
+<div class="qs-page">
+  {% block page %}{% endblock %}
+</div>
+{% endblock %}

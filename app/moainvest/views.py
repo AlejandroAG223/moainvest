@@ -1,5 +1,8 @@
 """Controlador: sitio MOAINVEST (Resumen, Gráficas e Informe), en la raíz.
 
+El navbar solo enlaza a «Inicio» (``/``) y «App» (``/app/``, que redirige a la
+primera app del sidebar); Gráficas e Informe siguen accesibles desde el contenido.
+
 Plantillas Jinja2 en ``moainvest/templates/moainvest/``. Las páginas se renderizan con el
 registro de watchlists; los precios, velas e informes los pide el JavaScript
 (``moainvest/static/moainvest.js``) a la API JSON (``/api/...``).
@@ -8,6 +11,7 @@ from __future__ import annotations
 
 from flask import Blueprint, abort, redirect, render_template, url_for
 
+from app.core.navigation import default_app
 from app.core.watchlists import WATCHLISTS, Watchlist, get_watchlist
 
 bp = Blueprint(
@@ -20,9 +24,8 @@ bp = Blueprint(
 
 # Navegación principal (cabecera, menú móvil y pie de página).
 MAIN_NAV = (
-    ("moainvest.resumen", "Resumen"),
-    ("moainvest.graficas", "Gráficas"),
-    ("moainvest.informe", "Informe"),
+    ("moainvest.resumen", "Inicio"),
+    ("moainvest.app_home", "App"),
 )
 
 # Rangos del gráfico de velas: etiqueta del botón, range e interval de /api/candles.
@@ -51,6 +54,12 @@ def chart_url(watchlist: Watchlist, ticker: str | None = None) -> str:
 def resumen():
     overview = get_watchlist("overview") or WATCHLISTS[0]
     return render_template("moainvest/resumen.html", watchlist=overview, chart_url=chart_url)
+
+
+@bp.get("/app/", strict_slashes=False)
+def app_home():
+    """Entrada a la App: redirige a la primera app del sidebar (``default_app()``)."""
+    return redirect(url_for(default_app().endpoint))
 
 
 @bp.get("/graficas", strict_slashes=False)

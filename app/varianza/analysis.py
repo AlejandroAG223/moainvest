@@ -2,7 +2,8 @@
 
 Reutiliza los precios ya descargados/cacheados por ``market_data`` y usa
 seaborn/matplotlib para generar la imagen del histograma, que el
-controlador sirve directamente como PNG.
+controlador sirve directamente como PNG. El tema (claro, colores de marca) se
+aplica solo mientras se dibuja, sin tocar el estado global de matplotlib.
 """
 from __future__ import annotations
 
@@ -18,9 +19,7 @@ import pandas as pd
 import seaborn as sns
 
 from app.core import market_data
-from app.core.charts import PALETTE as _PALETTE
-
-sns.set_theme(style="darkgrid")
+from app.core.charts import BRAND, INK, MPL_RC, PALETTE
 
 
 # Máximo de histogramas por fila, para poder comparar varios activos de un
@@ -61,6 +60,13 @@ def render_volatility_histograms(tickers: list[str], period: str = "5y") -> byte
     distribución de la volatilidad mensual anualizada de cada ticker, para
     poder compararlos de un vistazo. Devuelve un PNG en bytes.
     """
+    # Tema claro de marca solo durante el dibujo: sns.axes_style aporta el
+    # estilo "whitegrid" y rc_context(MPL_RC) los colores de core.charts.
+    with sns.axes_style("whitegrid", rc=MPL_RC), plt.rc_context(MPL_RC):
+        return _render_histograms(tickers, period)
+
+
+def _render_histograms(tickers: list[str], period: str) -> bytes:
     n = len(tickers)
     ncols = min(MAX_COLUMNS, n)
     nrows = math.ceil(n / ncols)
@@ -69,7 +75,7 @@ def render_volatility_histograms(tickers: list[str], period: str = "5y") -> byte
 
     for i, ticker in enumerate(tickers):
         ax = flat_axes[i]
-        color = _PALETTE[i % len(_PALETTE)]
+        color = PALETTE[i % len(PALETTE)]
         volatility = monthly_volatility(ticker, period) * 100  # a %
 
         if volatility.empty:
@@ -77,8 +83,19 @@ def render_volatility_histograms(tickers: list[str], period: str = "5y") -> byte
             ax.axis("off")
             continue
 
-        sns.histplot(volatility, bins=min(12, max(3, volatility.size)), kde=True, ax=ax, color=color)
-        ax.set_title(f"{ticker}  (n={volatility.size} meses)")
+        sns.histplot(
+            volatility,
+            bins=min(12, max(3, volatility.size)),
+            kde=True,
+            ax=ax,
+            color=color,
+            edgecolor="white",
+            line_kws={"linewidth": 1.6},
+        )
+        # Mediana como referencia, discontinua (en rojo si el histograma es negro).
+        median_color = BRAND if color == INK else INK
+        ax.axvline(volatility.median(), color=median_color, linewidth=1, linestyle="--")
+        ax.set_title(f"{ticker}  (n={volatility.size} meses)", loc="left")
         ax.set_xlabel("Volatilidad anualizada (%)")
         ax.set_ylabel("Frecuencia")
 
@@ -86,7 +103,7 @@ def render_volatility_histograms(tickers: list[str], period: str = "5y") -> byte
     for ax in flat_axes[n:]:
         ax.axis("off")
 
-    fig.suptitle("Volatilidad mensual anualizada")
+    fig.suptitle("Volatilidad mensual anualizada", x=0.01, ha="left", fontweight="semibold")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
 
     buffer = io.BytesIO()

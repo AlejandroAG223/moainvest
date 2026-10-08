@@ -1,0 +1,323 @@
+/* Graficador: estilos propios con la marca MOAINVEST (blancos, rojos y negros),
+   como moainvest/grafica.html. Usa los tokens de core/static/css/style.css y no
+   depende de las clases genéricas del shell. */
+
+.graficador {
+  /* Verde de texto más oscuro que --up: #0f8a5f no llega a AA (4,5:1) en cifras
+     pequeñas sobre blanco ni sobre --up-soft. Las velas siguen usando --up. */
+  --graficador-up-text: #0b6e4b;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 2rem 1.5rem;
+  min-height: calc(100vh - var(--topbar-height));
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  color: var(--ink);
+}
+
+/* ───────────────────────── Cabecera del activo ───────────────────────── */
+
+.graficador__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+}
+
+.graficador__heading { min-width: 0; }
+
+.graficador__eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.graficador__title {
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.graficador__name { overflow-wrap: anywhere; }
+
+.graficador__symbol {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.graficador__symbol[hidden] { display: none; }
+
+.graficador__quote {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.graficador__price {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.graficador__currency {
+  margin-left: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.graficador__pill {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--mist);
+  color: var(--muted);
+}
+
+.graficador__pill[data-tone="up"] { background: var(--up-soft); color: var(--graficador-up-text); }
+.graficador__pill[data-tone="down"] { background: var(--brand-soft); color: var(--brand-deep); }
+
+/* ───────────────────────── Controles ───────────────────────── */
+
+.graficador__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+/* Segmented control pill: rangos en rojo de marca, tipo de serie en negro. */
+.graficador__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+}
+
+.graficador__chip {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out-soft), color 0.15s var(--ease-out-soft);
+}
+
+.graficador__chip:hover { background: var(--mist); }
+
+.graficador__chip[aria-pressed="true"] { background: var(--brand); color: #fff; }
+.graficador__group--ink .graficador__chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+
+.graficador__search {
+  display: flex;
+  gap: 0.4rem;
+  flex: 0 1 340px;
+  margin-left: auto;
+}
+
+.graficador__input {
+  flex: 1;
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: border-color 0.15s var(--ease-out-soft);
+}
+
+.graficador__input::placeholder { color: var(--muted); text-transform: none; letter-spacing: 0; }
+.graficador__input:hover { border-color: rgba(23, 23, 23, 0.4); }
+
+.graficador__btn {
+  appearance: none;
+  background: var(--brand);
+  border: 1px solid var(--brand);
+  color: #fff;
+  padding: 0.55rem 1.2rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out-soft);
+}
+
+.graficador__btn:hover { background: var(--brand-deep); border-color: var(--brand-deep); }
+
+/* Foco visible en rojo de marca, como el sitio rojo. */
+.graficador__input:focus-visible,
+.graficador__btn:focus-visible,
+.graficador__chip:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.graficador__input:focus-visible { border-color: var(--brand); }
+
+/* ───────────────────────── Gráfico ───────────────────────── */
+
+.graficador__chart-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 460px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.graficador__chart {
+  position: absolute;
+  inset: 8px;
+}
+
+/* Leyenda OHLC: tarjeta blanca con cifras en mono. */
+.graficador__legend {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  max-width: calc(100% - 90px);
+  pointer-events: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.8rem;
+  padding: 0.4rem 0.7rem;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.graficador__legend:empty { display: none; }
+.graficador__legend b { color: var(--ink); font-weight: 500; }
+.graficador__legend .is-up b { color: var(--graficador-up-text); }
+.graficador__legend .is-down b { color: var(--brand); }
+.graficador__legend-time { color: var(--ink); }
+
+/* ───────────────────────── Estados ───────────────────────── */
+
+.graficador__status {
+  margin: 0;
+  padding: 0.8rem 1.1rem;
+  max-width: 28rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.graficador__status--error {
+  color: var(--brand-deep);
+  border-color: rgba(200, 16, 46, 0.25);
+}
+
+/* Error de ticker inválido, fuera del gráfico. */
+#graficador-error { text-align: left; max-width: none; }
+
+.graficador__status--loading::before {
+  content: "";
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.55em;
+  vertical-align: -0.08em;
+  border: 2px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: graficador-spin 0.8s linear infinite;
+}
+
+@keyframes graficador-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .graficador__status--loading::before { animation: none; }
+}
+
+.graficador__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.graficador__overlay[hidden] { display: none; }
+
+.graficador__note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.graficador__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .graficador { padding: 1.25rem 1rem; gap: 0.85rem; }
+  .graficador__quote { text-align: left; }
+  .graficador__price { font-size: 1.6rem; }
+  .graficador__search { flex-basis: 100%; margin-left: 0; order: -1; }
+  .graficador__group { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+  .graficador__chip { padding: 0.4rem 0.7rem; flex-shrink: 0; }
+  .graficador__chart-wrap { min-height: 400px; }
+  /* En móvil la leyenda ocupa su propia franja y el gráfico empieza debajo,
+     para no tapar las velas ni la escala de precios. */
+  .graficador__legend { left: 8px; right: 8px; top: 8px; max-width: none; font-size: 0.68rem; }
+  .graficador__chart { top: 64px; }
+}

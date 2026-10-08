@@ -21,7 +21,7 @@ from app.quant_stats import quant
 from app.core.navigation import get_app
 from app.core.watchlists import WATCHLISTS
 
-bp = Blueprint("quant_stats", __name__, url_prefix="/quant-stats", template_folder="templates")
+bp = Blueprint("quant_stats", __name__, url_prefix="/app/quant-stats", template_folder="templates")
 
 DEFAULT_TICKER = "UEC"
 PERIODS = {"1y": "1 año", "2y": "2 años", "5y": "5 años", "max": "Todo"}
