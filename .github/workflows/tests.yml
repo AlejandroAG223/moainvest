@@ -1,0 +1,42 @@
+# Ejecuta la suite de pytest en cada PR hacia stg o main.
+name: Tests
+
+on:
+  pull_request:
+    branches: [stg, main]
+  # Permite lanzarlo a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+# Si llegan commits nuevos al mismo PR, cancela la ejecución anterior.
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Instalar Python (.python-version)
+        run: uv python install
+
+      - name: Instalar dependencias (uv.lock)
+        run: uv sync --locked
+
+      # Los tests no tocan la red ni necesitan .env: simulan yfinance, Resend
+      # y Cloudinary, y Config tiene valores por defecto para desarrollo.
+      - name: Ejecutar tests
+        env:
+          MPLBACKEND: Agg
+        run: uv run pytest -q

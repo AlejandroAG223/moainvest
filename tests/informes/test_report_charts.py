@@ -45,3 +45,25 @@ def test_fetch_closes_tolerates_provider_errors(monkeypatch):
 
     monkeypatch.setattr("app.informes.report_charts.market_data.get_candles", _boom)
     assert REAL_FETCH_CLOSES("AAPL") == []
+
+
+def test_render_watchlist_performance_uses_core_palette(monkeypatch):
+    import matplotlib
+    from matplotlib.colors import to_hex
+
+    from app.core.charts import PALETTE, PAPER
+
+    assert report_charts.PALETTE is PALETTE
+    assert not hasattr(report_charts, "_PALETTE")  # sin paleta propia
+    figures = []
+    real_close = report_charts.plt.close
+    monkeypatch.setattr(report_charts.plt, "close", lambda fig: (figures.append(fig), real_close(fig)))
+    before = dict(matplotlib.rcParams)
+
+    report_charts.render_watchlist_performance(get_watchlist("overview"))
+
+    ax = figures[0].axes[0]
+    assert to_hex(figures[0].get_facecolor()) == PAPER
+    series = [line for line in ax.get_lines() if line.get_label() and not line.get_label().startswith("_")]
+    assert [to_hex(line.get_color()) for line in series] == PALETTE[: len(series)]
+    assert dict(matplotlib.rcParams) == before

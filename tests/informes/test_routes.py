@@ -84,7 +84,7 @@ def test_api_send_assets_report_reports_provider_errors(client, monkeypatch):
 
 
 def test_informes_page_has_preview_and_send_buttons(client):
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     assert response.status_code == 200
     assert b'id="preview-btn"' in response.data
     assert b'id="send-btn"' in response.data
@@ -93,7 +93,7 @@ def test_informes_page_has_preview_and_send_buttons(client):
 
 
 def test_informes_page_has_background_fx_layers(client):
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     for scene in ("charts", "stats", "sports"):
         # Video en bucle si existe static/video/informes-<escena>.mp4; si no, canvas.
         assert f"fx-layer--{scene}".encode() in response.data
@@ -108,7 +108,7 @@ def test_informes_page_uses_local_images_without_cloudinary(client, monkeypatch)
     from config import Config
 
     monkeypatch.setattr(Config, "CLOUDINARY_URL", "")
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     assert b"/static/img/informes/charts.jpg" in response.data
     assert b"res.cloudinary.com" not in response.data
 
@@ -117,14 +117,14 @@ def test_informes_page_uses_cloudinary_images_when_configured(client, monkeypatc
     from config import Config
 
     monkeypatch.setattr(Config, "CLOUDINARY_URL", "cloudinary://123456:secreto@demo")
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     assert b"https://res.cloudinary.com/demo/image/upload/" in response.data
     assert b"f_auto" in response.data and b"q_auto" in response.data
     assert b"srcset=" in response.data
 
 
 def test_informes_page_uses_inline_svg_icons_instead_of_emojis(client):
-    response = client.get("/informes/")
+    response = client.get("/app/informes/")
     html = response.data.decode()
     content = html[html.index('id="informes-page"'):]
     # Iconos de línea inline que heredan el color y son decorativos.
@@ -137,3 +137,22 @@ def test_informes_page_uses_inline_svg_icons_instead_of_emojis(client):
     # Ningún emoji de watchlist dentro del contenido de la página.
     for watchlist in WATCHLISTS:
         assert watchlist.icon not in content
+
+
+def test_informes_page_uses_brand_layout(client):
+    html = client.get("/app/informes/").data
+    for marker in (b'class="informes-hero', b'class="informes-eyebrow"', b"informes-btn", b'id="informes-preview-empty"'):
+        assert marker in html
+    # Pasos del flujo, como en /informe del sitio rojo.
+    for step in ("01 · Watchlists incluidas", "02 · Revisa", "03 · Envía por correo"):
+        assert step.encode() in html
+
+
+def test_report_preview_uses_brand_colors(client, monkeypatch):
+    monkeypatch.setattr("app.informes.report.market_data.get_quote", fake_quote)
+    html = client.get("/api/report/preview?watchlists=overview").data
+    assert b"background:#171717" in html  # cabecera negra
+    assert b"#c8102e" in html  # rojo de marca
+    # Nada de la paleta azul anterior.
+    for old in (b"#2962ff", b"#131722", b"#f0f3fa", b"#089981", b"#f23645"):
+        assert old not in html

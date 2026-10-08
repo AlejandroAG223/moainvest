@@ -14,6 +14,8 @@
   const emailInput = document.getElementById("email-input");
   const statusEl = document.getElementById("informes-status");
   const previewEl = document.getElementById("informes-preview");
+  const previewEmpty = document.getElementById("informes-preview-empty");
+  const viewerEl = document.getElementById("informes-viewer");
 
   function setStatus(message, isError) {
     statusEl.hidden = !message;
@@ -42,6 +44,8 @@
       setStatus("");
     };
     previewEl.hidden = false;
+    previewEmpty.hidden = true;
+    viewerEl.classList.add("has-preview");
     previewEl.src = `/api/report/preview?watchlists=${encodeURIComponent(slugs.join(","))}`;
   });
 
