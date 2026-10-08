@@ -211,13 +211,23 @@
 }
 
 /* Leyenda OHLC: tarjeta blanca con cifras en mono. */
-.graficador__legend {
+/* Pila de leyendas sobre el gráfico: la fila OHLC y, debajo, una por cada
+   indicador superpuesto al precio. Solo los botones de las filas reciben clics. */
+.graficador__legend-stack {
   position: absolute;
   top: 12px;
   left: 12px;
   z-index: 3;
   max-width: calc(100% - 90px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
   pointer-events: none;
+}
+
+.graficador__legend {
+  max-width: 100%;
   display: flex;
   flex-wrap: wrap;
   gap: 0.15rem 0.8rem;
@@ -318,6 +328,356 @@
   .graficador__chart-wrap { min-height: 400px; }
   /* En móvil la leyenda ocupa su propia franja y el gráfico empieza debajo,
      para no tapar las velas ni la escala de precios. */
-  .graficador__legend { left: 8px; right: 8px; top: 8px; max-width: none; font-size: 0.68rem; }
+  .graficador__legend-stack { left: 8px; right: 8px; top: 8px; max-width: none; }
+  .graficador__legend { font-size: 0.68rem; }
+  /* graficador-indicators.js ajusta ``top`` al alto de la pila si hay indicadores. */
   .graficador__chart { top: 64px; }
+}
+
+/* ───────────────────────── Indicadores técnicos ───────────────────────── */
+
+.graficador__btn--outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--paper);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.graficador__btn--outline:hover { background: var(--mist); border-color: rgba(23, 23, 23, 0.4); }
+.graficador__btn--outline:disabled { opacity: 0.55; cursor: progress; }
+.graficador__btn--outline .ui-icon { color: var(--brand); }
+
+.graficador__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.graficador__count[hidden] { display: none; }
+
+/* Leyenda de cada indicador: nombre (parámetros), valores bajo el cursor y botones. */
+.gind-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.gind-list:empty { display: none; }
+
+.gind-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 100%;
+  padding: 0.15rem 0.3rem 0.15rem 0.65rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  pointer-events: auto;
+}
+
+.gind-row__name { color: var(--ink); font-weight: 500; white-space: nowrap; }
+.gind-row__params { color: var(--muted); font-weight: 400; }
+.gind-row__vals { display: inline-flex; flex-wrap: wrap; gap: 0.15rem 0.6rem; min-width: 2ch; }
+.gind-val { font-weight: 500; }
+.gind-row.is-off { opacity: 0.55; }
+.gind-row.is-loading .gind-row__vals { color: var(--muted); }
+.gind-row.is-error .gind-row__vals { color: var(--brand-deep); }
+
+.gind-row__actions { display: inline-flex; gap: 0.1rem; }
+
+/* En ratón, los botones aparecen al pasar por la fila; en táctil, siempre visibles. */
+@media (hover: hover) {
+  .gind-row__actions { opacity: 0; transition: opacity 0.15s var(--ease-out-soft); }
+  .gind-row:hover .gind-row__actions,
+  .gind-row:focus-within .gind-row__actions { opacity: 1; }
+}
+
+/* Capa de las leyendas de los paneles; graficador-indicators.js coloca cada una
+   (``top``) sobre el panel que le toca. */
+.gind-panes {
+  position: absolute;
+  inset: 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.gind-row--pane { position: absolute; left: 4px; max-width: calc(100% - 84px); }
+
+.gind-icon-btn {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out-soft), color 0.15s var(--ease-out-soft);
+}
+
+.gind-icon-btn:hover { background: var(--mist); color: var(--ink); }
+.gind-icon-btn:focus-visible,
+.gind-chip:focus-visible,
+.gind-item:focus-visible,
+.gind-btn:focus-visible,
+.gind-picker__search input:focus-visible,
+.gind-field input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.gind-icon-btn .ui-icon { width: 0.95rem; height: 0.95rem; }
+
+.gind-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 5;
+  transform: translateX(-50%);
+  max-width: calc(100% - 2rem);
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.gind-toast[hidden] { display: none; }
+
+/* ───────────────────────── Diálogos ───────────────────────── */
+
+.gind-dialog {
+  padding: 0;
+  width: min(680px, calc(100vw - 2rem));
+  max-height: min(82vh, 760px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  box-shadow: 0 32px 80px -32px rgba(23, 23, 23, 0.55);
+}
+
+.gind-dialog[open] { display: flex; flex-direction: column; }
+.gind-dialog::backdrop { background: rgba(23, 23, 23, 0.45); }
+.gind-dialog--sm { width: min(420px, calc(100vw - 2rem)); }
+.gind-dialog form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+
+.gind-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.gind-dialog__head h2 { margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em; }
+
+.gind-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--line);
+  background: var(--mist);
+  border-radius: 0 0 18px 18px;
+}
+
+.gind-dialog__hint { flex: 1 1 14rem; margin: 0; font-size: 0.75rem; line-height: 1.4; color: var(--muted); }
+
+.gind-btn {
+  appearance: none;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out-soft), border-color 0.15s var(--ease-out-soft);
+}
+
+.gind-btn--primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.gind-btn--primary:hover { background: var(--brand-deep); border-color: var(--brand-deep); }
+.gind-btn--outline { background: var(--paper); border-color: var(--line); color: var(--ink); }
+.gind-btn--outline:hover { border-color: rgba(23, 23, 23, 0.4); }
+.gind-btn--ghost { background: transparent; color: var(--muted); }
+.gind-btn--ghost:hover:not(:disabled) { color: var(--brand); }
+.gind-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Buscador, categorías y lista del diálogo «Indicadores». */
+.gind-picker__search { position: relative; padding: 0.85rem 1.25rem 0.6rem; }
+
+.gind-picker__search .ui-icon {
+  position: absolute;
+  left: 2rem;
+  top: 50%;
+  transform: translateY(-35%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.gind-picker__search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 1rem 0.6rem 2.4rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+
+.gind-picker__search input:hover { border-color: rgba(23, 23, 23, 0.4); }
+
+.gind-picker__cats { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1.25rem 0.75rem; }
+
+.gind-chip {
+  appearance: none;
+  padding: 0.35rem 0.8rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.gind-chip:hover { background: var(--mist); }
+.gind-chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.gind-picker__list { flex: 1; min-height: 8rem; margin: 0; padding: 0 0.5rem 0.5rem; list-style: none; overflow-y: auto; }
+.gind-picker__list li[hidden] { display: none; }
+.gind-picker__empty { margin: 0; padding: 2rem 1.25rem; text-align: center; color: var(--muted); font-size: 0.9rem; }
+.gind-picker__empty[hidden] { display: none; }
+
+.gind-item {
+  appearance: none;
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gind-item:hover { background: var(--mist); }
+
+.gind-item__title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.6rem; }
+.gind-item__title b { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; }
+.gind-item__title span { font-size: 0.85rem; color: var(--ink); }
+.gind-item__desc { font-size: 0.78rem; line-height: 1.4; color: var(--muted); }
+.gind-item__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+
+.gind-tag {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gind-tag--soft { background: var(--mist); }
+
+.gind-item__count {
+  margin-left: auto;
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.gind-item__count[hidden] { display: none; }
+
+/* Ajustes de un indicador. */
+.gind-settings__body { display: grid; gap: 1.1rem; padding: 1rem 1.25rem 1.25rem; overflow-y: auto; }
+.gind-fieldset { margin: 0; padding: 0; border: 0; }
+
+.gind-fieldset legend {
+  padding: 0;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gind-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.gind-field input[type="number"] {
+  width: 7.5rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--paper);
+  text-align: right;
+}
+
+.gind-field input[type="color"] {
+  width: 2.75rem;
+  height: 1.75rem;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .gind-dialog { max-height: 90vh; }
+  /* Leyenda compacta en una sola línea: el MACD tiene tres valores y, partida en
+     vertical, tapaba las líneas del panel. */
+  .gind-row { gap: 0.4rem; font-size: 0.66rem; }
+  .gind-row__vals { flex-wrap: nowrap; gap: 0.4rem; }
+  .gind-row--pane { max-width: calc(100% - 8px); }
+  .gind-icon-btn { width: 1.35rem; height: 1.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gind-row__actions { transition: none; }
 }
